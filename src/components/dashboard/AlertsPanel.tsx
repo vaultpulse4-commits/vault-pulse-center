@@ -1,79 +1,55 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { useDashboardStore } from "@/store/dashboardStore";
 import { AlertTriangle, Bell, CheckCircle, X } from "lucide-react";
-
-interface Alert {
-  id: string;
-  type: "critical" | "warning" | "info";
-  title: string;
-  message: string;
-  timestamp: string;
-  acknowledged: boolean;
-}
-
-const mockAlerts: Alert[] = [
-  {
-    id: "1",
-    type: "critical",
-    title: "Monitor Speakers Offline",
-    message: "Main monitor speakers have lost connection. Check power and network cables.",
-    timestamp: "2 min ago",
-    acknowledged: false
-  },
-  {
-    id: "2",
-    type: "warning",
-    title: "Fog Machine Low Fluid",
-    message: "Stage fog machine fluid level below 20%. Refill recommended before next event.",
-    timestamp: "15 min ago",
-    acknowledged: false
-  },
-  {
-    id: "3",
-    type: "info",
-    title: "Scheduled Maintenance",
-    message: "LED wall calibration scheduled for tomorrow at 14:00.",
-    timestamp: "1 hr ago",
-    acknowledged: true
-  },
-  {
-    id: "4",
-    type: "warning",
-    title: "High Temperature Alert",
-    message: "Amplifier rack temperature above normal range (65°C).",
-    timestamp: "45 min ago",
-    acknowledged: false
-  }
-];
-
-const getAlertIcon = (type: Alert["type"]) => {
-  switch (type) {
-    case "critical":
-      return <AlertTriangle className="h-4 w-4 text-destructive" />;
-    case "warning":
-      return <AlertTriangle className="h-4 w-4 text-warning" />;
-    case "info":
-      return <Bell className="h-4 w-4 text-primary" />;
-  }
-};
-
-const getAlertVariant = (type: Alert["type"]) => {
-  switch (type) {
-    case "critical":
-      return "destructive";
-    case "warning":
-      return "secondary";
-    case "info":
-      return "outline";
-    default:
-      return "outline";
-  }
-};
+import { useToast } from "@/hooks/use-toast";
 
 export function AlertsPanel() {
-  const unacknowledgedAlerts = mockAlerts.filter(alert => !alert.acknowledged);
-  const criticalAlerts = mockAlerts.filter(alert => alert.type === "critical" && !alert.acknowledged);
+  const { alerts, acknowledgeAlert, acknowledgeAllAlerts } = useDashboardStore();
+  const { toast } = useToast();
+
+  const unacknowledgedAlerts = alerts.filter(alert => !alert.acknowledged);
+
+  const getAlertIcon = (type: "critical" | "warning" | "info") => {
+    switch (type) {
+      case "critical":
+        return <AlertTriangle className="h-4 w-4 text-destructive" />;
+      case "warning":
+        return <AlertTriangle className="h-4 w-4 text-warning" />;
+      case "info":
+        return <Bell className="h-4 w-4 text-primary" />;
+    }
+  };
+
+  const getAlertVariant = (type: "critical" | "warning" | "info") => {
+    switch (type) {
+      case "critical":
+        return "destructive";
+      case "warning":
+        return "secondary";
+      case "info":
+        return "outline";
+      default:
+        return "outline";
+    }
+  };
+
+  const handleAcknowledge = (id: string) => {
+    acknowledgeAlert(id);
+    toast({
+      title: "Alert Acknowledged",
+      description: "Alert has been marked as acknowledged",
+    });
+  };
+
+  const handleAcknowledgeAll = () => {
+    acknowledgeAllAlerts();
+    toast({
+      title: "All Alerts Acknowledged",
+      description: `${unacknowledgedAlerts.length} alerts have been acknowledged`,
+    });
+  };
 
   return (
     <Card className="bg-gradient-card border-border/50">
@@ -82,14 +58,14 @@ export function AlertsPanel() {
           <Bell className="h-5 w-5 text-warning" />
           System Alerts
           {unacknowledgedAlerts.length > 0 && (
-            <Badge variant="destructive" className="ml-auto">
+            <Badge variant="destructive" className="ml-auto animate-pulse">
               {unacknowledgedAlerts.length} New
             </Badge>
           )}
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
-        {mockAlerts.map((alert) => (
+        {alerts.map((alert) => (
           <div
             key={alert.id}
             className={`p-3 rounded-lg border transition-all ${
@@ -118,7 +94,12 @@ export function AlertsPanel() {
                 {alert.acknowledged ? (
                   <CheckCircle className="h-4 w-4 text-success" />
                 ) : (
-                  <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="h-6 w-6 p-0 hover:bg-destructive/20"
+                    onClick={() => handleAcknowledge(alert.id)}
+                  >
                     <X className="h-3 w-3" />
                   </Button>
                 )}
@@ -128,9 +109,20 @@ export function AlertsPanel() {
         ))}
         
         {unacknowledgedAlerts.length > 0 && (
-          <Button variant="outline" className="w-full mt-4">
-            Acknowledge All Alerts
+          <Button 
+            variant="outline" 
+            className="w-full mt-4"
+            onClick={handleAcknowledgeAll}
+          >
+            Acknowledge All Alerts ({unacknowledgedAlerts.length})
           </Button>
+        )}
+
+        {alerts.length === 0 && (
+          <div className="text-center py-8 text-muted-foreground">
+            <Bell className="h-8 w-8 mx-auto mb-2 opacity-50" />
+            <p>No alerts at this time</p>
+          </div>
         )}
       </CardContent>
     </Card>

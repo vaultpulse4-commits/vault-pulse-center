@@ -1,24 +1,10 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { AlertTriangle, CheckCircle, Clock, Zap } from "lucide-react";
-
-interface Equipment {
-  id: string;
-  name: string;
-  type: "lighting" | "sound" | "projector" | "stage";
-  status: "online" | "maintenance" | "offline" | "warning";
-  lastChecked: string;
-  power?: number;
-}
-
-const mockEquipment: Equipment[] = [
-  { id: "1", name: "Main Sound System", type: "sound", status: "online", lastChecked: "2 min ago", power: 85 },
-  { id: "2", name: "LED Wall Array", type: "lighting", status: "online", lastChecked: "1 min ago", power: 92 },
-  { id: "3", name: "Stage Fog Machine", type: "stage", status: "maintenance", lastChecked: "15 min ago" },
-  { id: "4", name: "Projection Mapping", type: "projector", status: "warning", lastChecked: "5 min ago", power: 67 },
-  { id: "5", name: "Laser Light Show", type: "lighting", status: "online", lastChecked: "30 sec ago", power: 95 },
-  { id: "6", name: "Monitor Speakers", type: "sound", status: "offline", lastChecked: "1 hr ago" },
-];
+import { Button } from "@/components/ui/button";
+import { Slider } from "@/components/ui/slider";
+import { useDashboardStore, Equipment } from "@/store/dashboardStore";
+import { AlertTriangle, CheckCircle, Clock, Zap, Power, RotateCcw } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 const getStatusIcon = (status: Equipment["status"]) => {
   switch (status) {
@@ -49,8 +35,33 @@ const getStatusVariant = (status: Equipment["status"]) => {
 };
 
 export function EquipmentStatus() {
-  const onlineCount = mockEquipment.filter(eq => eq.status === "online").length;
-  const totalCount = mockEquipment.length;
+  const { equipment, updateEquipmentStatus, updateEquipmentPower, restartEquipment } = useDashboardStore();
+  const { toast } = useToast();
+
+  const onlineCount = equipment.filter(eq => eq.status === "online").length;
+  const totalCount = equipment.length;
+
+  const handleStatusChange = (id: string, newStatus: Equipment["status"]) => {
+    updateEquipmentStatus(id, newStatus);
+    const equipment_item = equipment.find(eq => eq.id === id);
+    toast({
+      title: "Equipment Status Updated",
+      description: `${equipment_item?.name} is now ${newStatus}`,
+    });
+  };
+
+  const handlePowerChange = (id: string, power: number[]) => {
+    updateEquipmentPower(id, power[0]);
+  };
+
+  const handleRestart = (id: string) => {
+    restartEquipment(id);
+    const equipment_item = equipment.find(eq => eq.id === id);
+    toast({
+      title: "Equipment Restarted",
+      description: `${equipment_item?.name} has been restarted`,
+    });
+  };
 
   return (
     <Card className="bg-gradient-card border-border/50">
@@ -64,29 +75,77 @@ export function EquipmentStatus() {
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        {mockEquipment.map((equipment) => (
+        {equipment.map((equipment_item) => (
           <div
-            key={equipment.id}
-            className="flex items-center justify-between p-3 rounded-lg bg-muted/30 border border-border/30 hover:bg-muted/50 transition-colors"
+            key={equipment_item.id}
+            className="p-4 rounded-lg bg-muted/30 border border-border/30 hover:bg-muted/50 transition-colors space-y-3"
           >
-            <div className="flex items-center gap-3">
-              {getStatusIcon(equipment.status)}
-              <div>
-                <p className="font-medium text-foreground">{equipment.name}</p>
-                <p className="text-sm text-muted-foreground capitalize">
-                  {equipment.type} • {equipment.lastChecked}
-                </p>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                {getStatusIcon(equipment_item.status)}
+                <div>
+                  <p className="font-medium text-foreground">{equipment_item.name}</p>
+                  <p className="text-sm text-muted-foreground capitalize">
+                    {equipment_item.type} • {equipment_item.lastChecked}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                {equipment_item.power !== undefined && (
+                  <span className="text-sm text-muted-foreground min-w-[40px]">
+                    {equipment_item.power}%
+                  </span>
+                )}
+                <Badge variant={getStatusVariant(equipment_item.status)}>
+                  {equipment_item.status}
+                </Badge>
               </div>
             </div>
-            <div className="flex items-center gap-2">
-              {equipment.power && (
-                <span className="text-sm text-muted-foreground">
-                  {equipment.power}%
-                </span>
-              )}
-              <Badge variant={getStatusVariant(equipment.status)}>
-                {equipment.status}
-              </Badge>
+
+            {/* Power Control */}
+            {equipment_item.power !== undefined && equipment_item.status !== "offline" && (
+              <div className="flex items-center gap-4">
+                <Power className="h-4 w-4 text-muted-foreground" />
+                <div className="flex-1">
+                  <Slider
+                    value={[equipment_item.power]}
+                    onValueChange={(value) => handlePowerChange(equipment_item.id, value)}
+                    max={100}
+                    min={0}
+                    step={1}
+                    className="w-full"
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Action Buttons */}
+            <div className="flex gap-2">
+              <Button
+                variant={equipment_item.status === "online" ? "outline" : "default"}
+                size="sm"
+                onClick={() => handleStatusChange(equipment_item.id, "online")}
+                disabled={equipment_item.status === "online"}
+              >
+                Online
+              </Button>
+              <Button
+                variant={equipment_item.status === "maintenance" ? "outline" : "secondary"}
+                size="sm"
+                onClick={() => handleStatusChange(equipment_item.id, "maintenance")}
+                disabled={equipment_item.status === "maintenance"}
+              >
+                Maintenance
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleRestart(equipment_item.id)}
+                className="ml-auto"
+              >
+                <RotateCcw className="h-3 w-3 mr-1" />
+                Restart
+              </Button>
             </div>
           </div>
         ))}

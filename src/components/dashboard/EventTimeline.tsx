@@ -1,65 +1,10 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { useDashboardStore } from "@/store/dashboardStore";
 import { Calendar, Clock, Users } from "lucide-react";
 
-interface Event {
-  id: string;
-  name: string;
-  date: string;
-  time: string;
-  setup: string;
-  capacity: number;
-  techRequirements: string[];
-  status: "upcoming" | "in-progress" | "completed";
-}
-
-const mockEvents: Event[] = [
-  {
-    id: "1",
-    name: "Electric Friday",
-    date: "Today",
-    time: "22:00",
-    setup: "20:00",
-    capacity: 850,
-    techRequirements: ["Full LED Wall", "Laser Show", "Fog Effects"],
-    status: "in-progress"
-  },
-  {
-    id: "2",
-    name: "Saturday Night Fever",
-    date: "Tomorrow",
-    time: "21:30",
-    setup: "19:30",
-    capacity: 1200,
-    techRequirements: ["Projection Mapping", "LED Strips", "Sound Enhancement"],
-    status: "upcoming"
-  },
-  {
-    id: "3",
-    name: "Sunday Sessions",
-    date: "Sun, Dec 29",
-    time: "20:00",
-    setup: "18:00",
-    capacity: 600,
-    techRequirements: ["Ambient Lighting", "Chill Sound Setup"],
-    status: "upcoming"
-  }
-];
-
-const getStatusColor = (status: Event["status"]) => {
-  switch (status) {
-    case "in-progress":
-      return "bg-gradient-primary";
-    case "upcoming":
-      return "bg-gradient-secondary";
-    case "completed":
-      return "bg-muted";
-    default:
-      return "bg-muted";
-  }
-};
-
 export function EventTimeline() {
+  const { events } = useDashboardStore();
   return (
     <Card className="bg-gradient-card border-border/50">
       <CardHeader>
@@ -69,7 +14,21 @@ export function EventTimeline() {
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        {mockEvents.map((event, index) => (
+        {events.map((event, index) => {
+          const getStatusColor = (status: "upcoming" | "in-progress" | "completed") => {
+            switch (status) {
+              case "in-progress":
+                return "bg-gradient-primary";
+              case "upcoming":
+                return "bg-gradient-secondary";
+              case "completed":
+                return "bg-muted";
+              default:
+                return "bg-muted";
+            }
+          };
+
+          return (
           <div
             key={event.id}
             className="relative flex gap-4 p-4 rounded-lg bg-muted/30 border border-border/30 hover:bg-muted/50 transition-colors"
@@ -114,7 +73,8 @@ export function EventTimeline() {
               </div>
             </div>
           </div>
-        ))}
+          );
+        })}
       </CardContent>
     </Card>
   );

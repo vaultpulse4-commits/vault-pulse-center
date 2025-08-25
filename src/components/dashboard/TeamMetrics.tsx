@@ -1,23 +1,10 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
-import { Users, Clock, TrendingUp, Award } from "lucide-react";
-
-interface TeamMember {
-  id: string;
-  name: string;
-  role: string;
-  status: "active" | "break" | "setup";
-  efficiency: number;
-  tasksCompleted: number;
-}
-
-const mockTeamData: TeamMember[] = [
-  { id: "1", name: "Alex Chen", role: "Lead Lighting", status: "active", efficiency: 94, tasksCompleted: 12 },
-  { id: "2", name: "Maya Rodriguez", role: "Sound Engineer", status: "active", efficiency: 88, tasksCompleted: 8 },
-  { id: "3", name: "Jordan Kim", role: "Stage Tech", status: "setup", efficiency: 91, tasksCompleted: 15 },
-  { id: "4", name: "Casey Thompson", role: "Visual Tech", status: "break", efficiency: 85, tasksCompleted: 6 },
-];
+import { Button } from "@/components/ui/button";
+import { useDashboardStore, TeamMember } from "@/store/dashboardStore";
+import { Users, Clock, TrendingUp, Award, Plus } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 const getStatusColor = (status: TeamMember["status"]) => {
   switch (status) {
@@ -46,11 +33,32 @@ const getStatusVariant = (status: TeamMember["status"]) => {
 };
 
 export function TeamMetrics() {
+  const { teamMembers, updateTeamMemberStatus, addTask } = useDashboardStore();
+  const { toast } = useToast();
+
   const avgEfficiency = Math.round(
-    mockTeamData.reduce((sum, member) => sum + member.efficiency, 0) / mockTeamData.length
+    teamMembers.reduce((sum, member) => sum + member.efficiency, 0) / teamMembers.length
   );
-  const totalTasks = mockTeamData.reduce((sum, member) => sum + member.tasksCompleted, 0);
-  const activeMembers = mockTeamData.filter(member => member.status === "active").length;
+  const totalTasks = teamMembers.reduce((sum, member) => sum + member.tasksCompleted, 0);
+  const activeMembers = teamMembers.filter(member => member.status === "active").length;
+
+  const handleStatusChange = (id: string, newStatus: TeamMember["status"]) => {
+    updateTeamMemberStatus(id, newStatus);
+    const member = teamMembers.find(m => m.id === id);
+    toast({
+      title: "Team Status Updated",
+      description: `${member?.name} is now ${newStatus}`,
+    });
+  };
+
+  const handleAddTask = (id: string) => {
+    addTask(id);
+    const member = teamMembers.find(m => m.id === id);
+    toast({
+      title: "Task Completed",
+      description: `${member?.name} completed a task`,
+    });
+  };
 
   return (
     <Card className="bg-gradient-card border-border/50">
@@ -79,32 +87,71 @@ export function TeamMetrics() {
 
         {/* Team Members */}
         <div className="space-y-3">
-          {mockTeamData.map((member) => (
+          {teamMembers.map((member) => (
             <div
               key={member.id}
-              className="flex items-center justify-between p-3 rounded-lg bg-muted/30 border border-border/30 hover:bg-muted/50 transition-colors"
+              className="p-4 rounded-lg bg-muted/30 border border-border/30 hover:bg-muted/50 transition-colors space-y-3"
             >
-              <div className="flex items-center gap-3">
-                <div className={`w-2 h-2 rounded-full ${
-                  member.status === "active" ? "bg-success animate-pulse" : 
-                  member.status === "setup" ? "bg-warning" : "bg-muted-foreground"
-                }`} />
-                <div>
-                  <p className="font-medium text-foreground">{member.name}</p>
-                  <p className="text-sm text-muted-foreground">{member.role}</p>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className={`w-2 h-2 rounded-full ${
+                    member.status === "active" ? "bg-success animate-pulse" : 
+                    member.status === "setup" ? "bg-warning" : "bg-muted-foreground"
+                  }`} />
+                  <div>
+                    <p className="font-medium text-foreground">{member.name}</p>
+                    <p className="text-sm text-muted-foreground">{member.role}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="text-right">
+                    <div className="flex items-center gap-2 mb-1">
+                      <Progress value={member.efficiency} className="w-16 h-2" />
+                      <span className="text-sm font-medium">{member.efficiency}%</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground">{member.tasksCompleted} tasks</p>
+                  </div>
+                  <Badge variant={getStatusVariant(member.status)} className="capitalize">
+                    {member.status}
+                  </Badge>
                 </div>
               </div>
-              <div className="flex items-center gap-3">
-                <div className="text-right">
-                  <div className="flex items-center gap-2 mb-1">
-                    <Progress value={member.efficiency} className="w-16 h-2" />
-                    <span className="text-sm font-medium">{member.efficiency}%</span>
-                  </div>
-                  <p className="text-xs text-muted-foreground">{member.tasksCompleted} tasks</p>
-                </div>
-                <Badge variant={getStatusVariant(member.status)} className="capitalize">
-                  {member.status}
-                </Badge>
+
+              {/* Action Buttons */}
+              <div className="flex gap-2">
+                <Button
+                  variant={member.status === "active" ? "outline" : "default"}
+                  size="sm"
+                  onClick={() => handleStatusChange(member.id, "active")}
+                  disabled={member.status === "active"}
+                >
+                  Active
+                </Button>
+                <Button
+                  variant={member.status === "break" ? "outline" : "secondary"}
+                  size="sm"
+                  onClick={() => handleStatusChange(member.id, "break")}
+                  disabled={member.status === "break"}
+                >
+                  Break
+                </Button>
+                <Button
+                  variant={member.status === "setup" ? "outline" : "secondary"}
+                  size="sm"
+                  onClick={() => handleStatusChange(member.id, "setup")}
+                  disabled={member.status === "setup"}
+                >
+                  Setup
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleAddTask(member.id)}
+                  className="ml-auto"
+                >
+                  <Plus className="h-3 w-3 mr-1" />
+                  Task
+                </Button>
               </div>
             </div>
           ))}
