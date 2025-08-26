@@ -1,12 +1,32 @@
-import { EquipmentStatus } from "@/components/dashboard/EquipmentStatus";
-import { EventTimeline } from "@/components/dashboard/EventTimeline";
-import { TeamMetrics } from "@/components/dashboard/TeamMetrics";
-import { AlertsPanel } from "@/components/dashboard/AlertsPanel";
-import { QuickActions } from "@/components/dashboard/QuickActions";
+import { WeekPicker } from "@/components/vault/WeekPicker";
+import { CityToggle } from "@/components/vault/CityToggle";
+import { KPICards } from "@/components/vault/KPICards";
+import { TonightGlance } from "@/components/vault/TonightGlance";
+import { VaultTabs } from "@/components/vault/VaultTabs";
 import { Badge } from "@/components/ui/badge";
+import { useVaultStore } from "@/store/vaultStore";
 import { Activity, Zap } from "lucide-react";
 
 const Index = () => {
+  const { selectedCity, alerts } = useVaultStore();
+  const unacknowledgedAlerts = alerts.filter(alert => 
+    !alert.acknowledged && alert.city === selectedCity
+  ).length;
+
+  const getCurrentTime = () => {
+    const now = new Date();
+    const options: Intl.DateTimeFormatOptions = {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      timeZone: selectedCity === 'jakarta' ? 'Asia/Jakarta' : 'Asia/Makassar'
+    };
+    return now.toLocaleDateString('en-US', options);
+  };
+
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
@@ -18,7 +38,7 @@ const Index = () => {
                 <Zap className="h-6 w-6 text-white" />
               </div>
               <div>
-                <h1 className="text-2xl font-bold text-foreground">Vault Tech Dashboard</h1>
+                <h1 className="text-2xl font-bold text-foreground">Vault Club Dashboard</h1>
                 <p className="text-sm text-muted-foreground">Technical Operations Control Center</p>
               </div>
             </div>
@@ -27,9 +47,17 @@ const Index = () => {
                 <div className="w-2 h-2 rounded-full bg-success animate-pulse" />
                 System Online
               </Badge>
+              {unacknowledgedAlerts > 0 && (
+                <Badge variant="destructive" className="flex items-center gap-2">
+                  <Activity className="h-3 w-3" />
+                  {unacknowledgedAlerts} Alerts
+                </Badge>
+              )}
               <div className="text-right">
-                <p className="text-sm font-medium text-foreground">Friday, Dec 27</p>
-                <p className="text-xs text-muted-foreground">21:45 EST</p>
+                <p className="text-sm font-medium text-foreground">{getCurrentTime()}</p>
+                <p className="text-xs text-muted-foreground">
+                  {selectedCity === 'jakarta' ? 'WIB (UTC+7)' : 'WITA (UTC+8)'}
+                </p>
               </div>
             </div>
           </div>
@@ -37,21 +65,21 @@ const Index = () => {
       </header>
 
       {/* Main Dashboard */}
-      <main className="container mx-auto px-6 py-6">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Left Column */}
-          <div className="lg:col-span-2 space-y-6">
-            <EquipmentStatus />
-            <EventTimeline />
-            <TeamMetrics />
-          </div>
-
-          {/* Right Column */}
-          <div className="space-y-6">
-            <AlertsPanel />
-            <QuickActions />
-          </div>
+      <main className="container mx-auto px-6 py-6 space-y-6">
+        {/* Top Controls */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <WeekPicker />
+          <CityToggle />
         </div>
+
+        {/* KPI Cards */}
+        <KPICards />
+
+        {/* Tonight at a Glance */}
+        <TonightGlance />
+
+        {/* Tabbed Interface */}
+        <VaultTabs />
       </main>
     </div>
   );
