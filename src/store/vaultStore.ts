@@ -10,19 +10,10 @@ export type EventStatus = 'upcoming' | 'in-progress' | 'completed';
 
 export interface KPIMetrics {
   nightsOpen: number;
-  eventsExecuted: number;
-  onTimeStartPercentage: number;
   equipmentUptimePercentage: number;
   issuesRaised: number;
   issuesResolved: number;
-  avgMTTR: number; // hours
-  mtbf: number; // days
-  cueAccuracy: number; // percentage
-  soundcheckOnTimePercentage: number;
   powerIncidents: number;
-  noiseComplaints: number;
-  staffAttendancePercentage: number;
-  trainingHours: number;
 }
 
 export interface Equipment {
@@ -106,35 +97,17 @@ export const useVaultStore = create<VaultState>((set, get) => ({
   kpiMetrics: {
     jakarta: {
       nightsOpen: 4, // Wed-Sat
-      eventsExecuted: 12,
-      onTimeStartPercentage: 94.2,
       equipmentUptimePercentage: 97.8,
       issuesRaised: 8,
       issuesResolved: 6,
-      avgMTTR: 2.3,
-      mtbf: 45.2,
-      cueAccuracy: 96.7,
-      soundcheckOnTimePercentage: 89.5,
       powerIncidents: 1,
-      noiseComplaints: 0,
-      staffAttendancePercentage: 92.1,
-      trainingHours: 24.5,
     },
     bali: {
       nightsOpen: 5, // Mon, Wed-Sat
-      eventsExecuted: 15,
-      onTimeStartPercentage: 91.8,
       equipmentUptimePercentage: 95.4,
       issuesRaised: 12,
       issuesResolved: 10,
-      avgMTTR: 3.1,
-      mtbf: 38.7,
-      cueAccuracy: 94.2,
-      soundcheckOnTimePercentage: 85.3,
       powerIncidents: 2,
-      noiseComplaints: 1,
-      staffAttendancePercentage: 88.9,
-      trainingHours: 31.2,
     },
   },
 
@@ -182,11 +155,22 @@ export const useVaultStore = create<VaultState>((set, get) => ({
   ],
 
   crewMembers: [
-    { id: "1", name: "Alex Chen", role: "LJ Lead", shift: "night", assigned: true, city: "jakarta" },
-    { id: "2", name: "Maya Rodriguez", role: "Sound Engineer", shift: "night", assigned: true, city: "jakarta" },
-    { id: "3", name: "Jordan Kim", role: "VJ Tech", shift: "night", assigned: false, city: "jakarta" },
-    { id: "4", name: "Casey Thompson", role: "GE Day", shift: "day", assigned: true, city: "bali" },
-    { id: "5", name: "Sam Wilson", role: "GE Night", shift: "night", assigned: true, city: "bali" },
+    // Jakarta Team
+    { id: "1", name: "Chris", role: "Engineer Day", shift: "day", assigned: true, city: "jakarta" },
+    { id: "2", name: "Nando", role: "Engineer Night", shift: "night", assigned: true, city: "jakarta" },
+    { id: "3", name: "Dhipa", role: "Sound Engineer", shift: "night", assigned: true, city: "jakarta" },
+    { id: "4", name: "Jerry", role: "Sound Engineer", shift: "night", assigned: false, city: "jakarta" },
+    { id: "5", name: "Ating", role: "Visual Jockey", shift: "night", assigned: true, city: "jakarta" },
+    { id: "6", name: "Helmi", role: "Lighting Jockey", shift: "night", assigned: true, city: "jakarta" },
+    
+    // Bali Team
+    { id: "7", name: "Kukuh", role: "Engineer Day", shift: "day", assigned: true, city: "bali" },
+    { id: "8", name: "Pungku", role: "Engineer Day", shift: "day", assigned: true, city: "bali" },
+    { id: "9", name: "Andra", role: "Engineer Night", shift: "night", assigned: true, city: "bali" },
+    { id: "10", name: "Made", role: "Sound Engineer", shift: "night", assigned: true, city: "bali" },
+    { id: "11", name: "Slengky", role: "Visual Jockey", shift: "night", assigned: true, city: "bali" },
+    { id: "12", name: "Budi", role: "Lighting Jockey", shift: "night", assigned: true, city: "bali" },
+    { id: "13", name: "Soon", role: "Technical Asst", shift: "night", assigned: false, city: "bali" },
   ],
 
   tonightGlance: {

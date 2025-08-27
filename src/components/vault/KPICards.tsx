@@ -34,22 +34,6 @@ export function KPICards() {
       color: "text-foreground" 
     },
     { 
-      title: "Events Executed", 
-      value: metrics.eventsExecuted, 
-      unit: "events", 
-      icon: Play, 
-      trend: "up",
-      color: "text-success" 
-    },
-    { 
-      title: "On-time Start", 
-      value: metrics.onTimeStartPercentage, 
-      unit: "%", 
-      icon: Clock, 
-      trend: metrics.onTimeStartPercentage >= 90 ? "up" : "down",
-      color: metrics.onTimeStartPercentage >= 90 ? "text-success" : "text-warning" 
-    },
-    { 
       title: "Equipment Uptime", 
       value: metrics.equipmentUptimePercentage, 
       unit: "%", 
@@ -74,68 +58,12 @@ export function KPICards() {
       color: "text-success" 
     },
     { 
-      title: "Avg MTTR", 
-      value: metrics.avgMTTR, 
-      unit: "hrs", 
-      icon: Timer, 
-      trend: metrics.avgMTTR <= 3 ? "up" : "down",
-      color: metrics.avgMTTR <= 3 ? "text-success" : "text-warning" 
-    },
-    { 
-      title: "MTBF", 
-      value: metrics.mtbf, 
-      unit: "days", 
-      icon: Activity, 
-      trend: metrics.mtbf >= 40 ? "up" : "down",
-      color: metrics.mtbf >= 40 ? "text-success" : "text-warning" 
-    },
-    { 
-      title: "Cue Accuracy (LJ/VJ)", 
-      value: metrics.cueAccuracy, 
-      unit: "%", 
-      icon: Target, 
-      trend: metrics.cueAccuracy >= 95 ? "up" : "down",
-      color: metrics.cueAccuracy >= 95 ? "text-success" : "text-warning" 
-    },
-    { 
-      title: "Soundcheck On-time", 
-      value: metrics.soundcheckOnTimePercentage, 
-      unit: "%", 
-      icon: Headphones, 
-      trend: metrics.soundcheckOnTimePercentage >= 90 ? "up" : "down",
-      color: metrics.soundcheckOnTimePercentage >= 90 ? "text-success" : "text-warning" 
-    },
-    { 
       title: "Power Incidents", 
       value: metrics.powerIncidents, 
       unit: "incidents", 
       icon: Power, 
       trend: metrics.powerIncidents === 0 ? "up" : "down",
       color: metrics.powerIncidents === 0 ? "text-success" : "text-destructive" 
-    },
-    { 
-      title: "Noise Complaints", 
-      value: metrics.noiseComplaints, 
-      unit: "complaints", 
-      icon: Volume2, 
-      trend: metrics.noiseComplaints === 0 ? "up" : "down",
-      color: metrics.noiseComplaints === 0 ? "text-success" : "text-destructive" 
-    },
-    { 
-      title: "Staff Attendance", 
-      value: metrics.staffAttendancePercentage, 
-      unit: "%", 
-      icon: Users, 
-      trend: metrics.staffAttendancePercentage >= 90 ? "up" : "down",
-      color: metrics.staffAttendancePercentage >= 90 ? "text-success" : "text-warning" 
-    },
-    { 
-      title: "Training Hours", 
-      value: metrics.trainingHours, 
-      unit: "hrs", 
-      icon: GraduationCap, 
-      trend: "up",
-      color: "text-primary" 
     },
   ];
 
@@ -151,7 +79,7 @@ export function KPICards() {
   };
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
+    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
       {kpiData.map((kpi, index) => {
         const Icon = kpi.icon;
         return (
