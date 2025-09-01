@@ -1,67 +1,39 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { DollarSign, TrendingUp, Clock, CheckCircle, FileText } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { useVaultStore } from "@/store/vaultStore";
+import { useToast } from "@/hooks/use-toast";
+import { DollarSign, TrendingUp, Clock, CheckCircle, FileText, Edit3, Trash2 } from "lucide-react";
+import { useState } from "react";
 
 export function ProposalsTab() {
-  const proposals = [
-    {
-      id: 1,
-      title: "LED Wall Upgrade - 4K Panels",
-      type: "CapEx",
-      urgency: "High",
-      estimate: 125000000, // IDR
-      roi: "30% power efficiency, 50% better color accuracy",
-      vendor: "LED Solutions Indonesia",
-      status: "Review",
-      targetWeek: "Week 37, 2025",
-      owner: "Alex Chen",
-      nextAction: "CEO Approval Required",
-      quotes: 3
-    },
-    {
-      id: 2,
-      title: "Backup CDJ Units",
-      type: "CapEx",
-      urgency: "Medium",
-      estimate: 45000000,
-      roi: "Eliminate 90% of DJ setup failures",
-      vendor: "Pioneer DJ Indonesia",
-      status: "Approved",
-      targetWeek: "Week 36, 2025",
-      owner: "Maya Rodriguez",
-      nextAction: "Procurement",
-      quotes: 2
-    },
-    {
-      id: 3,
-      title: "Preventive Maintenance Contract",
-      type: "OpEx",
-      urgency: "Low",
-      estimate: 24000000,
-      roi: "25% reduction in unexpected downtime",
-      vendor: "TechMaint Services",
-      status: "Draft",
-      targetWeek: "Week 40, 2025",
-      owner: "Jordan Kim",
-      nextAction: "Cost analysis",
-      quotes: 1
-    },
-    {
-      id: 4,
-      title: "Resolume Media Server Upgrade",
-      type: "CapEx",
-      urgency: "Medium",
-      estimate: 85000000,
-      roi: "Real-time 8K content support, 60% faster rendering",
-      vendor: "AV Solutions Jakarta",
-      status: "Ordered",
-      targetWeek: "Week 35, 2025",
-      owner: "Casey Thompson",
-      nextAction: "Installation planning",
-      quotes: 2
-    }
-  ];
+  const { selectedCity, proposals, addProposal, updateProposal, deleteProposal, crewMembers } = useVaultStore();
+  const { toast } = useToast();
+  
+  const cityProposals = proposals.filter(proposal => proposal.city === selectedCity);
+  const cityOwners = crewMembers.filter(member => member.city === selectedCity);
+  
+  const [isNewProposalOpen, setIsNewProposalOpen] = useState(false);
+  const [editingProposal, setEditingProposal] = useState<any>(null);
+  
+  const [newProposal, setNewProposal] = useState({
+    title: '',
+    type: 'CapEx' as const,
+    urgency: 'Medium' as const,
+    estimate: 0,
+    roi: '',
+    vendor: '',
+    status: 'Draft' as const,
+    targetWeek: '',
+    owner: '',
+    nextAction: '',
+    quotes: 0
+  });
 
   const getUrgencyVariant = (urgency: string) => {
     switch (urgency) {
@@ -106,14 +78,159 @@ export function ProposalsTab() {
     return amount > 100000000 ? "CEO Approval" : "Tech Director";
   };
 
+  const handleCreateProposal = () => {
+    if (!newProposal.title || !newProposal.owner) {
+      toast({ title: "Error", description: "Title and owner are required", variant: "destructive" });
+      return;
+    }
+    
+    addProposal({ ...newProposal, city: selectedCity });
+    setNewProposal({
+      title: '', type: 'CapEx', urgency: 'Medium', estimate: 0, roi: '',
+      vendor: '', status: 'Draft', targetWeek: '', owner: '', nextAction: '', quotes: 0
+    });
+    setIsNewProposalOpen(false);
+    toast({ title: "Success", description: "Proposal created successfully" });
+  };
+
+  const handleUpdateProposal = (id: string, updates: any) => {
+    updateProposal(id, updates);
+    toast({ title: "Success", description: "Proposal updated" });
+  };
+
+  const handleDeleteProposal = (id: string, title: string) => {
+    deleteProposal(id);
+    toast({ title: "Success", description: `Proposal "${title}" deleted` });
+  };
+
+  const handleEditProposal = (proposal: any) => {
+    setEditingProposal({ ...proposal });
+  };
+
+  const handleSaveEdit = () => {
+    if (!editingProposal) return;
+    
+    updateProposal(editingProposal.id, editingProposal);
+    setEditingProposal(null);
+    toast({ title: "Success", description: "Proposal updated successfully" });
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-semibold">Proposals (CapEx/OpEx)</h3>
-        <Button variant="outline">
-          <FileText className="h-4 w-4 mr-2" />
-          New Proposal
-        </Button>
+        <Dialog open={isNewProposalOpen} onOpenChange={setIsNewProposalOpen}>
+          <DialogTrigger asChild>
+            <Button variant="outline">
+              <FileText className="h-4 w-4 mr-2" />
+              New Proposal
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Create New Proposal</DialogTitle>
+            </DialogHeader>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="col-span-2 space-y-2">
+                <Label htmlFor="title">Title *</Label>
+                <Input
+                  id="title"
+                  value={newProposal.title}
+                  onChange={(e) => setNewProposal({...newProposal, title: e.target.value})}
+                  placeholder="Proposal title"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="type">Type</Label>
+                <Select value={newProposal.type} onValueChange={(value: any) => setNewProposal({...newProposal, type: value})}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="CapEx">CapEx</SelectItem>
+                    <SelectItem value="OpEx">OpEx</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="urgency">Urgency</Label>
+                <Select value={newProposal.urgency} onValueChange={(value: any) => setNewProposal({...newProposal, urgency: value})}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Low">Low</SelectItem>
+                    <SelectItem value="Medium">Medium</SelectItem>
+                    <SelectItem value="High">High</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="estimate">Estimate (IDR)</Label>
+                <Input
+                  id="estimate"
+                  type="number"
+                  value={newProposal.estimate}
+                  onChange={(e) => setNewProposal({...newProposal, estimate: parseInt(e.target.value) || 0})}
+                  placeholder="Cost estimate"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="owner">Owner *</Label>
+                <Select value={newProposal.owner} onValueChange={(value) => setNewProposal({...newProposal, owner: value})}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select owner" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {cityOwners.map((owner) => (
+                      <SelectItem key={owner.id} value={owner.name}>{owner.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="vendor">Vendor</Label>
+                <Input
+                  id="vendor"
+                  value={newProposal.vendor}
+                  onChange={(e) => setNewProposal({...newProposal, vendor: e.target.value})}
+                  placeholder="Vendor name"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="targetWeek">Target Week</Label>
+                <Input
+                  id="targetWeek"
+                  value={newProposal.targetWeek}
+                  onChange={(e) => setNewProposal({...newProposal, targetWeek: e.target.value})}
+                  placeholder="e.g., Week 37, 2025"
+                />
+              </div>
+              <div className="col-span-2 space-y-2">
+                <Label htmlFor="roi">ROI Description</Label>
+                <Textarea
+                  id="roi"
+                  value={newProposal.roi}
+                  onChange={(e) => setNewProposal({...newProposal, roi: e.target.value})}
+                  placeholder="Return on investment benefits"
+                />
+              </div>
+              <div className="col-span-2 space-y-2">
+                <Label htmlFor="nextAction">Next Action</Label>
+                <Input
+                  id="nextAction"
+                  value={newProposal.nextAction}
+                  onChange={(e) => setNewProposal({...newProposal, nextAction: e.target.value})}
+                  placeholder="Next required action"
+                />
+              </div>
+            </div>
+            <div className="flex gap-2 justify-end mt-4">
+              <Button variant="outline" onClick={() => setIsNewProposalOpen(false)}>Cancel</Button>
+              <Button onClick={handleCreateProposal}>Create Proposal</Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
 
       {/* Summary Cards */}
@@ -169,7 +286,7 @@ export function ProposalsTab() {
 
       {/* Proposals List */}
       <div className="space-y-4">
-        {proposals.map((proposal) => (
+        {cityProposals.map((proposal) => (
           <Card key={proposal.id} className="bg-gradient-card border-border/50">
             <CardHeader>
               <div className="flex items-center justify-between">
@@ -234,25 +351,142 @@ export function ProposalsTab() {
               </div>
               
               <div className="flex gap-2 pt-4 border-t border-border/30">
-                <Button variant="default" size="sm">
-                  Review Details
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => {
+                    const nextStatus = proposal.status === 'Draft' ? 'Review' : 
+                                     proposal.status === 'Review' ? 'Approved' : 
+                                     proposal.status === 'Approved' ? 'Ordered' : 'Live';
+                    handleUpdateProposal(proposal.id, { status: nextStatus });
+                  }}
+                >
+                  {proposal.status === 'Draft' && 'Submit for Review'}
+                  {proposal.status === 'Review' && 'Approve'}
+                  {proposal.status === 'Approved' && 'Mark Ordered'}
+                  {proposal.status === 'Ordered' && 'Mark Live'}
+                  {proposal.status === 'Live' && 'Completed'}
+                </Button>
+                <Button variant="secondary" size="sm" onClick={() => handleEditProposal(proposal)}>
+                  <Edit3 className="h-3 w-3 mr-1" />
+                  Edit
                 </Button>
                 <Button variant="outline" size="sm">
-                  Edit Proposal
-                </Button>
-                <Button variant="secondary" size="sm">
                   View Quotes
                 </Button>
-                {proposal.status === 'Review' && (
-                  <Button variant="default" size="sm" className="ml-auto">
-                    Approve
-                  </Button>
-                )}
+                <Button 
+                  variant="destructive" 
+                  size="sm" 
+                  onClick={() => handleDeleteProposal(proposal.id, proposal.title)}
+                >
+                  <Trash2 className="h-3 w-3 mr-1" />
+                  Delete
+                </Button>
               </div>
             </CardContent>
           </Card>
         ))}
       </div>
+
+      {/* Edit Proposal Dialog */}
+      {editingProposal && (
+        <Dialog open={!!editingProposal} onOpenChange={() => setEditingProposal(null)}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Edit Proposal - {editingProposal.title}</DialogTitle>
+            </DialogHeader>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="col-span-2 space-y-2">
+                <Label htmlFor="edit-title">Title</Label>
+                <Input
+                  id="edit-title"
+                  value={editingProposal.title}
+                  onChange={(e) => setEditingProposal({...editingProposal, title: e.target.value})}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-type">Type</Label>
+                <Select value={editingProposal.type} onValueChange={(value: any) => setEditingProposal({...editingProposal, type: value})}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="CapEx">CapEx</SelectItem>
+                    <SelectItem value="OpEx">OpEx</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-urgency">Urgency</Label>
+                <Select value={editingProposal.urgency} onValueChange={(value: any) => setEditingProposal({...editingProposal, urgency: value})}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Low">Low</SelectItem>
+                    <SelectItem value="Medium">Medium</SelectItem>
+                    <SelectItem value="High">High</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-estimate">Estimate (IDR)</Label>
+                <Input
+                  id="edit-estimate"
+                  type="number"
+                  value={editingProposal.estimate}
+                  onChange={(e) => setEditingProposal({...editingProposal, estimate: parseInt(e.target.value) || 0})}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-vendor">Vendor</Label>
+                <Input
+                  id="edit-vendor"
+                  value={editingProposal.vendor}
+                  onChange={(e) => setEditingProposal({...editingProposal, vendor: e.target.value})}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-targetWeek">Target Week</Label>
+                <Input
+                  id="edit-targetWeek"
+                  value={editingProposal.targetWeek}
+                  onChange={(e) => setEditingProposal({...editingProposal, targetWeek: e.target.value})}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-quotes">Quotes</Label>
+                <Input
+                  id="edit-quotes"
+                  type="number"
+                  value={editingProposal.quotes}
+                  onChange={(e) => setEditingProposal({...editingProposal, quotes: parseInt(e.target.value) || 0})}
+                />
+              </div>
+              <div className="col-span-2 space-y-2">
+                <Label htmlFor="edit-roi">ROI Description</Label>
+                <Textarea
+                  id="edit-roi"
+                  value={editingProposal.roi}
+                  onChange={(e) => setEditingProposal({...editingProposal, roi: e.target.value})}
+                />
+              </div>
+              <div className="col-span-2 space-y-2">
+                <Label htmlFor="edit-nextAction">Next Action</Label>
+                <Input
+                  id="edit-nextAction"
+                  value={editingProposal.nextAction}
+                  onChange={(e) => setEditingProposal({...editingProposal, nextAction: e.target.value})}
+                />
+              </div>
+            </div>
+            <div className="flex gap-2 justify-end mt-4">
+              <Button variant="outline" onClick={() => setEditingProposal(null)}>Cancel</Button>
+              <Button onClick={handleSaveEdit}>Save Changes</Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }

@@ -2,9 +2,15 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { Lightbulb, Zap, AlertTriangle, CheckCircle, Clock } from "lucide-react";
+import { useVaultStore } from "@/store/vaultStore";
+import { useToast } from "@/hooks/use-toast";
+import { Lightbulb, Zap, AlertTriangle, CheckCircle, Clock, Edit3 } from "lucide-react";
 
 export function RndTab() {
+  const { selectedCity, rndProjects, updateRndProject } = useVaultStore();
+  const { toast } = useToast();
+  const cityProjects = rndProjects.filter(project => project.city === selectedCity);
+  
   const projects = [
     {
       id: 1,
@@ -149,7 +155,7 @@ export function RndTab() {
 
       {/* Projects */}
       <div className="space-y-4">
-        {projects.map((project) => (
+        {cityProjects.map((project) => (
           <Card key={project.id} className="bg-gradient-card border-border/50">
             <CardHeader>
               <div className="flex items-center justify-between">
@@ -246,17 +252,35 @@ export function RndTab() {
 
               {/* Actions */}
               <div className="flex gap-2 pt-2">
-                <Button variant="default" size="sm">
-                  View Details
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => {
+                    const nextPhase = project.phase === 'Idea' ? 'POC' : 
+                                     project.phase === 'POC' ? 'Pilot' : 
+                                     project.phase === 'Pilot' ? 'Live' : 'Live';
+                    updateRndProject(project.id, { phase: nextPhase });
+                    toast({ title: "Success", description: `Project advanced to ${nextPhase}` });
+                  }}
+                  disabled={project.phase === 'Live'}
+                >
+                  {project.phase === 'Idea' && 'Move to POC'}
+                  {project.phase === 'POC' && 'Move to Pilot'}
+                  {project.phase === 'Pilot' && 'Go Live'}
+                  {project.phase === 'Live' && 'Live'}
                 </Button>
-                <Button variant="outline" size="sm">
-                  Update Status
+                <Button 
+                  variant="secondary" 
+                  size="sm"
+                  onClick={() => {
+                    const newProgress = Math.min(100, project.progress + 10);
+                    updateRndProject(project.id, { progress: newProgress });
+                    toast({ title: "Success", description: "Progress updated" });
+                  }}
+                >
+                  <Edit3 className="h-3 w-3 mr-1" />
+                  Update Progress
                 </Button>
-                {project.phase !== 'Live' && (
-                  <Button variant="secondary" size="sm">
-                    Advance Phase
-                  </Button>
-                )}
               </div>
             </CardContent>
           </Card>

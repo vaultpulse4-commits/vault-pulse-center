@@ -5,7 +5,20 @@ import { Progress } from "@/components/ui/progress";
 import { Package, TrendingDown, AlertTriangle, Phone, Calendar } from "lucide-react";
 
 export function ConsumablesTab() {
-  const consumables = [
+  const { selectedCity, consumables, updateConsumable } = useVaultStore();
+  const { toast } = useToast();
+  const cityConsumables = consumables.filter(item => item.city === selectedCity);
+  
+  const handleStockUpdate = (id: string, change: number) => {
+    const item = cityConsumables.find(c => c.id === id);
+    if (item) {
+      const newStock = Math.max(0, item.currentStock + change);
+      updateConsumable(id, { currentStock: newStock });
+      toast({ title: "Success", description: `Stock updated for ${item.name}` });
+    }
+  };
+
+  const consumables_data = [
     {
       id: 1,
       name: "CO₂ Cartridges",
@@ -188,12 +201,7 @@ export function ConsumablesTab() {
         <CardContent>
           <div className="space-y-4">
             {consumables.map((item) => {
-              const status = getStockStatus(item.currentStock, item.reorderPoint);
-              const weeksRemaining = getWeeksRemaining(item.currentStock, item.weeklyUsage);
-              const stockPercentage = getStockPercentage(item.currentStock, item.reorderPoint);
-              
-              return (
-                <div key={item.id} className="p-4 bg-muted/30 rounded border border-border/30">
+            <div key={item.id} className="p-4 bg-muted/30 rounded border border-border/30">
                   <div className="flex items-center justify-between mb-3">
                     <div>
                       <div className="font-medium">{item.name}</div>
@@ -244,10 +252,10 @@ export function ConsumablesTab() {
                       </Button>
                     </div>
                   )}
-                </div>
-              );
-            })}
-          </div>
+            </div>
+          );
+        })}
+      </div>
         </CardContent>
       </Card>
 

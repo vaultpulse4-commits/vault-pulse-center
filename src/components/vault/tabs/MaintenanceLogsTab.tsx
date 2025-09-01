@@ -1,69 +1,51 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Wrench, Clock, DollarSign, TrendingUp, AlertTriangle } from "lucide-react";
+import { useVaultStore } from "@/store/vaultStore";
+import { useToast } from "@/hooks/use-toast";
+import { Wrench, Clock, DollarSign, TrendingUp, AlertTriangle, Plus, Edit3, Trash2 } from "lucide-react";
+import { useState } from "react";
 
 export function MaintenanceLogsTab() {
-  const maintenanceData = [
-    {
-      id: 1,
-      equipment: "CDJ 3000 #1",
-      type: "Preventive",
-      issue: "Routine cleaning and calibration",
-      status: "Completed",
-      mttr: 1.5,
-      cost: 150000,
-      parts: ["Cleaning kit", "Calibration disc"],
-      date: "2025-08-25",
-      technician: "Alex Chen"
-    },
-    {
-      id: 2,
-      equipment: "LED Wall Controller",
-      type: "Corrective",
-      issue: "Display artifacts in upper right panel",
-      status: "In Progress",
-      mttr: 4.2,
-      cost: 850000,
-      parts: ["LED Module", "Control board"],
-      date: "2025-08-26",
-      technician: "Jordan Kim"
-    },
-    {
-      id: 3,
-      equipment: "Void Nexus Speaker #2",
-      type: "Corrective",
-      issue: "Intermittent power loss",
-      status: "Scheduled",
-      mttr: null,
-      cost: 500000,
-      parts: ["Power supply unit"],
-      date: "2025-08-28",
-      technician: "Maya Rodriguez"
-    }
-  ];
-
-  const incidents = [
-    {
-      id: 1,
-      type: "Audio",
-      description: "Speaker dropout during peak hours",
-      rootCause: "Loose power connection",
-      prevention: "Regular connection inspection added to checklist",
-      impact: "Minimal - backup engaged automatically",
-      date: "2025-08-24 23:15"
-    },
-    {
-      id: 2,
-      type: "Lighting",
-      description: "Strobe malfunction during main set",
-      rootCause: "Overheating due to blocked ventilation",
-      prevention: "Enhanced cooling system maintenance",
-      impact: "Medium - manual override used",
-      date: "2025-08-23 01:30"
-    }
-  ];
+  const { selectedCity, maintenanceLogs, incidents, addMaintenanceLog, updateMaintenanceLog, deleteMaintenanceLog, addIncident, crewMembers } = useVaultStore();
+  const { toast } = useToast();
+  
+  const cityMaintenanceLogs = maintenanceLogs.filter(log => log.city === selectedCity);
+  const cityIncidents = incidents.filter(incident => incident.city === selectedCity);
+  const cityTechnicians = crewMembers.filter(member => member.city === selectedCity && (member.role.includes('Engineer') || member.role.includes('Technical')));
+  
+  const [isNewLogOpen, setIsNewLogOpen] = useState(false);
+  const [isNewIncidentOpen, setIsNewIncidentOpen] = useState(false);
+  const [editingLog, setEditingLog] = useState<any>(null);
+  
+  const [newLog, setNewLog] = useState({
+    equipment: '',
+    type: 'Preventive' as const,
+    issue: '',
+    status: 'Scheduled' as const,
+    mttr: null as number | null,
+    cost: 0,
+    parts: [] as string[],
+    date: '',
+    technician: ''
+  });
+  
+  const [newIncident, setNewIncident] = useState({
+    type: 'Audio' as const,
+    description: '',
+    rootCause: '',
+    prevention: '',
+    impact: '',
+    date: ''
+  });
+  
+  const [newPart, setNewPart] = useState('');
 
   const getStatusVariant = (status: string) => {
     switch (status) {
@@ -78,14 +60,261 @@ export function MaintenanceLogsTab() {
     return type === 'Preventive' ? 'text-success' : 'text-warning';
   };
 
+  const handleCreateLog = () => {
+    if (!newLog.equipment || !newLog.issue || !newLog.technician) {
+      toast({ title: "Error", description: "Equipment, issue, and technician are required", variant: "destructive" });
+      return;
+    }
+    
+    addMaintenanceLog({ ...newLog, city: selectedCity });
+    setNewLog({
+      equipment: '', type: 'Preventive', issue: '', status: 'Scheduled',
+      mttr: null, cost: 0, parts: [], date: '', technician: ''
+    });
+    setIsNewLogOpen(false);
+    toast({ title: "Success", description: "Maintenance log created successfully" });
+  };
+
+  const handleCreateIncident = () => {
+    if (!newIncident.description || !newIncident.type) {
+      toast({ title: "Error", description: "Type and description are required", variant: "destructive" });
+      return;
+    }
+    
+    addIncident({ ...newIncident, city: selectedCity });
+    setNewIncident({
+      type: 'Audio', description: '', rootCause: '', prevention: '', impact: '', date: ''
+    });
+    setIsNewIncidentOpen(false);
+    toast({ title: "Success", description: "Incident logged successfully" });
+  };
+
+  const handleUpdateLog = (id: string, updates: any) => {
+    updateMaintenanceLog(id, updates);
+    toast({ title: "Success", description: "Maintenance log updated" });
+  };
+
+  const handleDeleteLog = (id: string) => {
+    deleteMaintenanceLog(id);
+    toast({ title: "Success", description: "Maintenance log deleted" });
+  };
+
+  const addPart = () => {
+    if (newPart.trim()) {
+      setNewLog({ ...newLog, parts: [...newLog.parts, newPart.trim()] });
+      setNewPart('');
+    }
+  };
+
+  const removePart = (index: number) => {
+    setNewLog({ ...newLog, parts: newLog.parts.filter((_, i) => i !== index) });
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold">Maintenance & Logs</h3>
-        <Button variant="outline">
-          <Wrench className="h-4 w-4 mr-2" />
-          New Work Order
-        </Button>
+        <h3 className="text-lg font-semibold">Maintenance & Logs - {selectedCity.charAt(0).toUpperCase() + selectedCity.slice(1)}</h3>
+        <div className="flex gap-2">
+          <Dialog open={isNewLogOpen} onOpenChange={setIsNewLogOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline">
+                <Wrench className="h-4 w-4 mr-2" />
+                New Work Order
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-xl">
+              <DialogHeader>
+                <DialogTitle>Create New Work Order</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="equipment">Equipment *</Label>
+                    <Input
+                      id="equipment"
+                      value={newLog.equipment}
+                      onChange={(e) => setNewLog({...newLog, equipment: e.target.value})}
+                      placeholder="Equipment name"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="type">Type</Label>
+                    <Select value={newLog.type} onValueChange={(value: any) => setNewLog({...newLog, type: value})}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Preventive">Preventive</SelectItem>
+                        <SelectItem value="Corrective">Corrective</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="status">Status</Label>
+                    <Select value={newLog.status} onValueChange={(value: any) => setNewLog({...newLog, status: value})}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Scheduled">Scheduled</SelectItem>
+                        <SelectItem value="In Progress">In Progress</SelectItem>
+                        <SelectItem value="Completed">Completed</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="technician">Technician *</Label>
+                    <Select value={newLog.technician} onValueChange={(value) => setNewLog({...newLog, technician: value})}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select technician" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {cityTechnicians.map((tech) => (
+                          <SelectItem key={tech.id} value={tech.name}>{tech.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="date">Date</Label>
+                    <Input
+                      id="date"
+                      type="date"
+                      value={newLog.date}
+                      onChange={(e) => setNewLog({...newLog, date: e.target.value})}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="cost">Cost (IDR)</Label>
+                    <Input
+                      id="cost"
+                      type="number"
+                      value={newLog.cost}
+                      onChange={(e) => setNewLog({...newLog, cost: parseInt(e.target.value) || 0})}
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="issue">Issue Description *</Label>
+                  <Textarea
+                    id="issue"
+                    value={newLog.issue}
+                    onChange={(e) => setNewLog({...newLog, issue: e.target.value})}
+                    placeholder="Describe the issue or maintenance task"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Parts Used</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      value={newPart}
+                      onChange={(e) => setNewPart(e.target.value)}
+                      placeholder="Add part"
+                      onKeyPress={(e) => e.key === 'Enter' && addPart()}
+                    />
+                    <Button type="button" onClick={addPart} size="sm">
+                      <Plus className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  <div className="flex gap-1 flex-wrap">
+                    {newLog.parts.map((part, index) => (
+                      <Badge key={index} variant="secondary" className="text-xs">
+                        {part}
+                        <button onClick={() => removePart(index)} className="ml-1 text-destructive">×</button>
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              </div>
+              <div className="flex gap-2 justify-end">
+                <Button variant="outline" onClick={() => setIsNewLogOpen(false)}>Cancel</Button>
+                <Button onClick={handleCreateLog}>Create Work Order</Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+          
+          <Dialog open={isNewIncidentOpen} onOpenChange={setIsNewIncidentOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline">
+                <AlertTriangle className="h-4 w-4 mr-2" />
+                Log Incident
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Log New Incident</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="incident-type">Type *</Label>
+                    <Select value={newIncident.type} onValueChange={(value: any) => setNewIncident({...newIncident, type: value})}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Audio">Audio</SelectItem>
+                        <SelectItem value="Lighting">Lighting</SelectItem>
+                        <SelectItem value="Video">Video</SelectItem>
+                        <SelectItem value="Power">Power</SelectItem>
+                        <SelectItem value="Safety">Safety</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="incident-date">Date & Time</Label>
+                    <Input
+                      id="incident-date"
+                      type="datetime-local"
+                      value={newIncident.date}
+                      onChange={(e) => setNewIncident({...newIncident, date: e.target.value})}
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="description">Description *</Label>
+                  <Textarea
+                    id="description"
+                    value={newIncident.description}
+                    onChange={(e) => setNewIncident({...newIncident, description: e.target.value})}
+                    placeholder="Describe what happened"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="rootCause">Root Cause</Label>
+                  <Textarea
+                    id="rootCause"
+                    value={newIncident.rootCause}
+                    onChange={(e) => setNewIncident({...newIncident, rootCause: e.target.value})}
+                    placeholder="What caused the incident"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="prevention">Prevention Measures</Label>
+                  <Textarea
+                    id="prevention"
+                    value={newIncident.prevention}
+                    onChange={(e) => setNewIncident({...newIncident, prevention: e.target.value})}
+                    placeholder="How to prevent this in the future"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="impact">Impact</Label>
+                  <Textarea
+                    id="impact"
+                    value={newIncident.impact}
+                    onChange={(e) => setNewIncident({...newIncident, impact: e.target.value})}
+                    placeholder="Impact on operations and audience"
+                  />
+                </div>
+              </div>
+              <div className="flex gap-2 justify-end">
+                <Button variant="outline" onClick={() => setIsNewIncidentOpen(false)}>Cancel</Button>
+                <Button onClick={handleCreateIncident}>Log Incident</Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
 
       <Tabs defaultValue="work-orders" className="w-full">
@@ -148,7 +377,7 @@ export function MaintenanceLogsTab() {
 
           {/* Work Orders */}
           <div className="space-y-4">
-            {maintenanceData.map((order) => (
+            {cityMaintenanceLogs.map((order) => (
               <Card key={order.id} className="bg-gradient-card border-border/50">
                 <CardHeader>
                   <div className="flex items-center justify-between">
@@ -203,6 +432,30 @@ export function MaintenanceLogsTab() {
                       ))}
                     </div>
                   </div>
+                  
+                  <div className="flex gap-2 pt-4 border-t border-border/30">
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => handleUpdateLog(order.id, { 
+                        status: order.status === 'Completed' ? 'In Progress' : 'Completed' 
+                      })}
+                    >
+                      {order.status === 'Completed' ? 'Reopen' : 'Mark Complete'}
+                    </Button>
+                    <Button variant="secondary" size="sm">
+                      <Edit3 className="h-3 w-3 mr-1" />
+                      Edit
+                    </Button>
+                    <Button 
+                      variant="destructive" 
+                      size="sm" 
+                      onClick={() => handleDeleteLog(order.id)}
+                    >
+                      <Trash2 className="h-3 w-3 mr-1" />
+                      Delete
+                    </Button>
+                  </div>
                 </CardContent>
               </Card>
             ))}
@@ -210,7 +463,7 @@ export function MaintenanceLogsTab() {
         </TabsContent>
         
         <TabsContent value="incidents" className="space-y-4 mt-6">
-          {incidents.map((incident) => (
+          {cityIncidents.map((incident) => (
             <Card key={incident.id} className="bg-gradient-card border-border/50">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
