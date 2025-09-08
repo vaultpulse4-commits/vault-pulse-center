@@ -3,6 +3,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Package, TrendingDown, AlertTriangle, Phone, Calendar } from "lucide-react";
+import { useVaultStore } from "@/store/vaultStore";
+import { useToast } from "@/hooks/use-toast";
 
 export function ConsumablesTab() {
   const { selectedCity, consumables, updateConsumable } = useVaultStore();
@@ -200,8 +202,13 @@ export function ConsumablesTab() {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {consumables.map((item) => {
-            <div key={item.id} className="p-4 bg-muted/30 rounded border border-border/30">
+            {consumables_data.map((item) => {
+              const status = getStockStatus(item.currentStock, item.reorderPoint);
+              const weeksRemaining = getWeeksRemaining(item.currentStock, item.weeklyUsage);
+              const stockPercentage = getStockPercentage(item.currentStock, item.reorderPoint);
+              
+              return (
+                <div key={item.id} className="p-4 bg-muted/30 rounded border border-border/30">
                   <div className="flex items-center justify-between mb-3">
                     <div>
                       <div className="font-medium">{item.name}</div>
@@ -252,10 +259,10 @@ export function ConsumablesTab() {
                       </Button>
                     </div>
                   )}
-            </div>
-          );
-        })}
-      </div>
+                </div>
+              );
+            })}
+          </div>
         </CardContent>
       </Card>
 
