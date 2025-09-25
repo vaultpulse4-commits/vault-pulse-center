@@ -123,11 +123,6 @@ export interface CrewMember {
   city: City;
 }
 
-export interface TonightGlance {
-  eventBriefLocked: boolean;
-  assignedCrew: CrewMember[];
-  redAmberRisks: string[];
-}
 
 export interface Alert {
   id: string;
@@ -146,7 +141,7 @@ interface VaultState {
   equipment: Equipment[];
   eventBriefs: EventBrief[];
   crewMembers: CrewMember[];
-  tonightGlance: Record<City, TonightGlance>;
+  
   alerts: Alert[];
   maintenanceLogs: MaintenanceLog[];
   incidents: Incident[];
@@ -259,18 +254,6 @@ export const useVaultStore = create<VaultState>((set, get) => ({
     { id: "13", name: "Soon", role: "Technical Asst", shift: "night", assigned: false, city: "bali" },
   ],
 
-  tonightGlance: {
-    jakarta: {
-      eventBriefLocked: true,
-      assignedCrew: [],
-      redAmberRisks: ["LED Wall Controller degraded", "VJ Tech not assigned"]
-    },
-    bali: {
-      eventBriefLocked: false,
-      assignedCrew: [],
-      redAmberRisks: ["Event brief still draft", "High SPL risk venue"]
-    }
-  },
 
   alerts: [
     {

@@ -1,7 +1,7 @@
 import { WeekPicker } from "@/components/vault/WeekPicker";
 import { CityToggle } from "@/components/vault/CityToggle";
 import { KPICards } from "@/components/vault/KPICards";
-import { TonightGlance } from "@/components/vault/TonightGlance";
+
 import { VaultTabs } from "@/components/vault/VaultTabs";
 import { Badge } from "@/components/ui/badge";
 import { useVaultStore } from "@/store/vaultStore";
@@ -75,8 +75,6 @@ const Index = () => {
         {/* KPI Cards */}
         <KPICards />
 
-        {/* Tonight at a Glance */}
-        <TonightGlance />
 
         {/* Tabbed Interface */}
         <VaultTabs />
