@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useVaultStore } from "@/store/vaultStore";
 import { useToast } from "@/hooks/use-toast";
-import { Wrench, Clock, DollarSign, TrendingUp, AlertTriangle, Plus, Edit3, Trash2 } from "lucide-react";
+import { Wrench, Clock, DollarSign, TrendingUp, AlertTriangle, Plus, Edit3, Trash2, Camera, Upload } from "lucide-react";
 import { useState } from "react";
 
 export function MaintenanceLogsTab() {
@@ -223,6 +223,19 @@ export function MaintenanceLogsTab() {
                         <button onClick={() => removePart(index)} className="ml-1 text-destructive">×</button>
                       </Badge>
                     ))}
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label>Upload Photos & Videos</Label>
+                  <div className="flex gap-2">
+                    <Button variant="outline" className="flex-1">
+                      <Camera className="h-4 w-4 mr-2" />
+                      Upload Photos
+                    </Button>
+                    <Button variant="outline" className="flex-1">
+                      <Upload className="h-4 w-4 mr-2" />
+                      Upload Videos
+                    </Button>
                   </div>
                 </div>
               </div>

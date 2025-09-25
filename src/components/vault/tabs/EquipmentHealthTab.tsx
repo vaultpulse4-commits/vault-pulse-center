@@ -2,13 +2,23 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { useVaultStore, EquipmentArea, EquipmentStatus } from "@/store/vaultStore";
 import { useState } from "react";
-import { Zap, Filter, Calendar, Cpu, Clock, RotateCcw } from "lucide-react";
+import { Zap, Filter, Calendar, Cpu, Clock, RotateCcw, Plus, Upload, Camera } from "lucide-react";
 
 export function EquipmentHealthTab() {
   const { selectedCity, equipment, updateEquipmentStatus } = useVaultStore();
   const [filterArea, setFilterArea] = useState<EquipmentArea | 'all'>('all');
+  const [isAddEquipmentOpen, setIsAddEquipmentOpen] = useState(false);
+  const [newEquipment, setNewEquipment] = useState({
+    name: '',
+    area: 'FOH' as EquipmentArea,
+    firmware: '',
+    hoursUsed: 0
+  });
   
   const cityEquipment = equipment.filter(eq => eq.city === selectedCity);
   const filteredEquipment = filterArea === 'all' 
@@ -51,6 +61,85 @@ export function EquipmentHealthTab() {
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-semibold">Equipment Health - {selectedCity.charAt(0).toUpperCase() + selectedCity.slice(1)}</h3>
         <div className="flex items-center gap-2">
+          <Dialog open={isAddEquipmentOpen} onOpenChange={setIsAddEquipmentOpen}>
+            <DialogTrigger asChild>
+              <Button variant="default">
+                <Plus className="h-4 w-4 mr-2" />
+                Add Equipment
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Add New Equipment</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="equipName">Equipment Name</Label>
+                  <Input
+                    id="equipName"
+                    value={newEquipment.name}
+                    onChange={(e) => setNewEquipment(prev => ({ ...prev, name: e.target.value }))}
+                    placeholder="e.g., CDJ 3000 #3"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="equipArea">Area</Label>
+                  <Select value={newEquipment.area} onValueChange={(value) => setNewEquipment(prev => ({ ...prev, area: value as EquipmentArea }))}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {areas.filter(area => area !== 'all').map((area) => (
+                        <SelectItem key={area} value={area}>
+                          {area}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label htmlFor="equipFirmware">Firmware Version</Label>
+                  <Input
+                    id="equipFirmware"
+                    value={newEquipment.firmware}
+                    onChange={(e) => setNewEquipment(prev => ({ ...prev, firmware: e.target.value }))}
+                    placeholder="e.g., v2.1.4"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="equipHours">Hours Used</Label>
+                  <Input
+                    id="equipHours"
+                    type="number"
+                    value={newEquipment.hoursUsed}
+                    onChange={(e) => setNewEquipment(prev => ({ ...prev, hoursUsed: Number(e.target.value) }))}
+                    placeholder="0"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Upload Photos & Videos</Label>
+                  <div className="flex gap-2">
+                    <Button variant="outline" className="flex-1">
+                      <Camera className="h-4 w-4 mr-2" />
+                      Upload Photos
+                    </Button>
+                    <Button variant="outline" className="flex-1">
+                      <Upload className="h-4 w-4 mr-2" />
+                      Upload Videos
+                    </Button>
+                  </div>
+                </div>
+                <Button onClick={() => {
+                  // Add equipment logic here
+                  setIsAddEquipmentOpen(false);
+                  setNewEquipment({ name: '', area: 'FOH', firmware: '', hoursUsed: 0 });
+                }} className="w-full">
+                  Add Equipment
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+          
           <Filter className="h-4 w-4 text-muted-foreground" />
           <Select value={filterArea} onValueChange={(value) => setFilterArea(value as EquipmentArea | 'all')}>
             <SelectTrigger className="w-32">
@@ -148,6 +237,16 @@ export function EquipmentHealthTab() {
                 
                 <Button variant="secondary" size="sm">
                   Log Maintenance
+                </Button>
+                
+                <Button variant="outline" size="sm">
+                  <Camera className="h-3 w-3 mr-2" />
+                  Photos
+                </Button>
+                
+                <Button variant="outline" size="sm">
+                  <Upload className="h-3 w-3 mr-2" />
+                  Videos
                 </Button>
               </div>
             </CardContent>

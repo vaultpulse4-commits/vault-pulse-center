@@ -1,11 +1,24 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { useVaultStore } from "@/store/vaultStore";
-import { Users, Clock, AlertTriangle, CheckCircle } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useVaultStore, CrewMember, ShiftType } from "@/store/vaultStore";
+import { Users, Clock, AlertTriangle, CheckCircle, Plus, Edit } from "lucide-react";
+import { useState } from "react";
 
 export function ShiftCoverageTab() {
   const { selectedCity, crewMembers, assignCrewMember } = useVaultStore();
+  const [isManageStaffOpen, setIsManageStaffOpen] = useState(false);
+  const [editingMember, setEditingMember] = useState<CrewMember | null>(null);
+  const [newMember, setNewMember] = useState({
+    name: '',
+    role: '',
+    shift: 'day' as ShiftType,
+    assigned: false
+  });
   const cityCrew = crewMembers.filter(member => member.city === selectedCity);
   
   const dayCrew = cityCrew.filter(member => member.shift === 'day');
@@ -26,10 +39,68 @@ export function ShiftCoverageTab() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-semibold">Shift & Coverage - {selectedCity.charAt(0).toUpperCase() + selectedCity.slice(1)}</h3>
-        <Button variant="outline">
-          <Users className="h-4 w-4 mr-2" />
-          Manage Staff
-        </Button>
+        <Dialog open={isManageStaffOpen} onOpenChange={setIsManageStaffOpen}>
+          <DialogTrigger asChild>
+            <Button variant="outline">
+              <Users className="h-4 w-4 mr-2" />
+              Manage Staff
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Manage Staff - {selectedCity.charAt(0).toUpperCase() + selectedCity.slice(1)}</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="grid grid-cols-4 gap-4 p-4 bg-muted/30 rounded">
+                <Input
+                  placeholder="Name"
+                  value={newMember.name}
+                  onChange={(e) => setNewMember(prev => ({ ...prev, name: e.target.value }))}
+                />
+                <Input
+                  placeholder="Role"
+                  value={newMember.role}
+                  onChange={(e) => setNewMember(prev => ({ ...prev, role: e.target.value }))}
+                />
+                <Select value={newMember.shift} onValueChange={(value) => setNewMember(prev => ({ ...prev, shift: value as ShiftType }))}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="day">Day</SelectItem>
+                    <SelectItem value="night">Night</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Button onClick={() => {
+                  // Add logic to create new crew member
+                  setNewMember({ name: '', role: '', shift: 'day', assigned: false });
+                }}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add
+                </Button>
+              </div>
+              
+              <div className="space-y-2 max-h-60 overflow-y-auto">
+                {cityCrew.map((member) => (
+                  <div key={member.id} className="flex items-center justify-between p-3 bg-background rounded border">
+                    <div>
+                      <div className="font-medium">{member.name}</div>
+                      <div className="text-sm text-muted-foreground">{member.role} • {member.shift} shift</div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Badge variant={member.assigned ? 'default' : 'outline'}>
+                        {member.assigned ? 'Assigned' : 'Available'}
+                      </Badge>
+                      <Button variant="outline" size="sm" onClick={() => setEditingMember(member)}>
+                        <Edit className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -118,54 +189,6 @@ export function ShiftCoverageTab() {
         </Card>
       </div>
 
-      {/* Handover Quality & Safety Checks */}
-      <Card className="bg-gradient-card border-border/50">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <CheckCircle className="h-5 w-5 text-primary" />
-            Handover Quality & Safety Checks
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <h4 className="font-medium">Day→Night Handover</h4>
-              <div className="text-sm space-y-1">
-                <div className="flex justify-between">
-                  <span>Equipment Status Review:</span>
-                  <Badge variant="default">Complete</Badge>
-                </div>
-                <div className="flex justify-between">
-                  <span>Issue Log Transfer:</span>
-                  <Badge variant="default">Complete</Badge>
-                </div>
-                <div className="flex justify-between">
-                  <span>Safety Checklist:</span>
-                  <Badge variant="secondary">In Progress</Badge>
-                </div>
-              </div>
-            </div>
-            
-            <div className="space-y-2">
-              <h4 className="font-medium">Required Roles Tonight</h4>
-              <div className="text-sm space-y-1">
-                <div className="flex justify-between">
-                  <span>LJ Lead:</span>
-                  <Badge variant="default">Covered</Badge>
-                </div>
-                <div className="flex justify-between">
-                  <span>Sound Engineer:</span>
-                  <Badge variant="default">Covered</Badge>
-                </div>
-                <div className="flex justify-between">
-                  <span>VJ Tech:</span>
-                  <Badge variant="destructive">Missing</Badge>
-                </div>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 }

@@ -2,21 +2,25 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { useVaultStore } from "@/store/vaultStore";
-import { Users, TrendingUp, Clock, Shield, Award, GraduationCap } from "lucide-react";
+import { Users, TrendingUp, Clock, Shield, Award, GraduationCap, Edit } from "lucide-react";
+import { useState } from "react";
 
 export function TeamPerformanceTab() {
   const { selectedCity, crewMembers } = useVaultStore();
   const cityCrew = crewMembers.filter(member => member.city === selectedCity);
-
-  const teamMetrics = {
+  const [isEditingMetrics, setIsEditingMetrics] = useState(false);
+  const [teamMetrics, setTeamMetrics] = useState({
     attendance: 92.1,
     completedChecklists: 96.3,
     handoverQuality: 4.2,
     safetyCompliance: 98.5,
     trainingProgress: 78.5,
     commendations: 12
-  };
+  });
 
   const trainingMatrix = [
     { skill: "Audio Systems (SE)", level: "Advanced", progress: 85, required: true },
@@ -50,10 +54,94 @@ export function TeamPerformanceTab() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-semibold">Team Performance - {selectedCity.charAt(0).toUpperCase() + selectedCity.slice(1)}</h3>
-        <Button variant="outline">
-          <GraduationCap className="h-4 w-4 mr-2" />
-          Schedule Training
-        </Button>
+        <div className="flex gap-2">
+          <Dialog open={isEditingMetrics} onOpenChange={setIsEditingMetrics}>
+            <DialogTrigger asChild>
+              <Button variant="outline">
+                <Edit className="h-4 w-4 mr-2" />
+                Edit Metrics
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Edit Team Performance Metrics</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="attendance">Attendance (%)</Label>
+                  <Input
+                    id="attendance"
+                    type="number"
+                    value={teamMetrics.attendance}
+                    onChange={(e) => setTeamMetrics(prev => ({ ...prev, attendance: Number(e.target.value) }))}
+                    step="0.1"
+                    max="100"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="checklists">Completed Checklists (%)</Label>
+                  <Input
+                    id="checklists"
+                    type="number"
+                    value={teamMetrics.completedChecklists}
+                    onChange={(e) => setTeamMetrics(prev => ({ ...prev, completedChecklists: Number(e.target.value) }))}
+                    step="0.1"
+                    max="100"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="handover">Handover Quality (1-5)</Label>
+                  <Input
+                    id="handover"
+                    type="number"
+                    value={teamMetrics.handoverQuality}
+                    onChange={(e) => setTeamMetrics(prev => ({ ...prev, handoverQuality: Number(e.target.value) }))}
+                    step="0.1"
+                    max="5"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="safety">Safety Compliance (%)</Label>
+                  <Input
+                    id="safety"
+                    type="number"
+                    value={teamMetrics.safetyCompliance}
+                    onChange={(e) => setTeamMetrics(prev => ({ ...prev, safetyCompliance: Number(e.target.value) }))}
+                    step="0.1"
+                    max="100"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="training">Training Progress (%)</Label>
+                  <Input
+                    id="training"
+                    type="number"
+                    value={teamMetrics.trainingProgress}
+                    onChange={(e) => setTeamMetrics(prev => ({ ...prev, trainingProgress: Number(e.target.value) }))}
+                    step="0.1"
+                    max="100"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="commendations">Commendations</Label>
+                  <Input
+                    id="commendations"
+                    type="number"
+                    value={teamMetrics.commendations}
+                    onChange={(e) => setTeamMetrics(prev => ({ ...prev, commendations: Number(e.target.value) }))}
+                  />
+                </div>
+                <Button onClick={() => setIsEditingMetrics(false)} className="w-full">
+                  Save Changes
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+          <Button variant="outline">
+            <GraduationCap className="h-4 w-4 mr-2" />
+            Schedule Training
+          </Button>
+        </div>
       </div>
 
       {/* Performance Overview */}

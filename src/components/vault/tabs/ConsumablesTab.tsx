@@ -1,147 +1,178 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
-import { Package, TrendingDown, AlertTriangle, Phone, Calendar } from "lucide-react";
-import { useVaultStore } from "@/store/vaultStore";
-import { useToast } from "@/hooks/use-toast";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useVaultStore, Consumable } from "@/store/vaultStore";
+import { useState } from "react";
+import { Package, Plus, Edit, Trash2, AlertTriangle, TrendingDown, ShoppingCart, CheckCircle } from "lucide-react";
 
 export function ConsumablesTab() {
-  const { selectedCity, consumables, updateConsumable } = useVaultStore();
-  const { toast } = useToast();
-  const cityConsumables = consumables.filter(item => item.city === selectedCity);
-  
-  const handleStockUpdate = (id: string, change: number) => {
-    const item = cityConsumables.find(c => c.id === id);
-    if (item) {
-      const newStock = Math.max(0, item.currentStock + change);
-      updateConsumable(id, { currentStock: newStock });
-      toast({ title: "Success", description: `Stock updated for ${item.name}` });
+  const { selectedCity, consumables, addConsumable, updateConsumable } = useVaultStore();
+  const cityConsumables = consumables.filter(consumable => consumable.city === selectedCity);
+  const [isNewConsumableOpen, setIsNewConsumableOpen] = useState(false);
+  const [editingConsumable, setEditingConsumable] = useState<Consumable | null>(null);
+  const [orderStatus, setOrderStatus] = useState<Record<string, 'pending' | 'ordered' | 'delivered'>>({});
+  const [newConsumable, setNewConsumable] = useState({
+    name: '',
+    category: '',
+    currentStock: 0,
+    weeklyUsage: 0,
+    reorderPoint: 0,
+    unit: '',
+    supplier: '',
+    lastOrdered: ''
+  });
+
+  const handleCreateConsumable = () => {
+    if (newConsumable.name && newConsumable.category) {
+      addConsumable({
+        ...newConsumable,
+        city: selectedCity
+      });
+      setNewConsumable({
+        name: '', category: '', currentStock: 0, weeklyUsage: 0,
+        reorderPoint: 0, unit: '', supplier: '', lastOrdered: ''
+      });
+      setIsNewConsumableOpen(false);
     }
   };
 
-  const consumables_data = [
-    {
-      id: 1,
-      name: "CO₂ Cartridges",
-      currentStock: 45,
-      weeklyUsage: 12,
-      reorderPoint: 20,
-      unit: "cartridges",
-      supplier: "Gas Solutions Jakarta",
-      lastOrdered: "2025-08-20",
-      leadTime: "3 days"
-    },
-    {
-      id: 2,
-      name: "Fog Fluid (Hazer)",
-      currentStock: 15,
-      weeklyUsage: 8,
-      reorderPoint: 10,
-      unit: "liters",
-      supplier: "Stage Effects Indo",
-      lastOrdered: "2025-08-18",
-      leadTime: "2 days"
-    },
-    {
-      id: 3,
-      name: "Confetti Mix",
-      currentStock: 8,
-      weeklyUsage: 5,
-      reorderPoint: 12,
-      unit: "kg",
-      supplier: "Party Supplies Bali",
-      lastOrdered: "2025-08-15",
-      leadTime: "5 days"
-    },
-    {
-      id: 4,
-      name: "CDJ Accessories Kit",
-      currentStock: 3,
-      weeklyUsage: 1,
-      reorderPoint: 2,
-      unit: "kits",
-      supplier: "DJ Pro Indonesia",
-      lastOrdered: "2025-08-10",
-      leadTime: "7 days"
-    },
-    {
-      id: 5,
-      name: "Cleaning Supplies",
-      currentStock: 25,
-      weeklyUsage: 6,
-      reorderPoint: 15,
-      unit: "units",
-      supplier: "CleanTech Solutions",
-      lastOrdered: "2025-08-22",
-      leadTime: "1 day"
+  const handleEditConsumable = (consumable: Consumable) => {
+    setEditingConsumable(consumable);
+    setNewConsumable({
+      name: consumable.name,
+      category: consumable.category,
+      currentStock: consumable.currentStock,
+      weeklyUsage: consumable.weeklyUsage,
+      reorderPoint: consumable.reorderPoint,
+      unit: consumable.unit,
+      supplier: consumable.supplier,
+      lastOrdered: consumable.lastOrdered
+    });
+  };
+
+  const handleSaveEdit = () => {
+    if (editingConsumable) {
+      updateConsumable(editingConsumable.id, newConsumable);
+      setEditingConsumable(null);
+      setNewConsumable({
+        name: '', category: '', currentStock: 0, weeklyUsage: 0,
+        reorderPoint: 0, unit: '', supplier: '', lastOrdered: ''
+      });
     }
-  ];
-
-  const vendors = [
-    {
-      name: "Gas Solutions Jakarta",
-      contact: "+62 21 1234-5678",
-      email: "orders@gassolutions.id",
-      sla: "Same day delivery within Jakarta",
-      rating: 4.8
-    },
-    {
-      name: "Stage Effects Indo",
-      contact: "+62 21 2345-6789",
-      email: "sales@stageeffects.co.id",
-      sla: "2-day delivery, bulk discounts available",
-      rating: 4.6
-    },
-    {
-      name: "Party Supplies Bali",
-      contact: "+62 361 789-123",
-      email: "bali@partysupplies.id",
-      sla: "5-day inter-island shipping",
-      rating: 4.3
-    },
-    {
-      name: "DJ Pro Indonesia",
-      contact: "+62 21 3456-7890",
-      email: "support@djpro.id",
-      sla: "Weekly delivery, technical support included",
-      rating: 4.9
-    },
-    {
-      name: "CleanTech Solutions",
-      contact: "+62 21 4567-8901",
-      email: "orders@cleantech.id",
-      sla: "Daily delivery, emergency 4-hour service",
-      rating: 4.7
-    }
-  ];
-
-  const getStockStatus = (current: number, reorder: number) => {
-    const percentage = (current / reorder) * 100;
-    if (current <= reorder) return { variant: 'destructive', text: 'Reorder Now', color: 'text-destructive' };
-    if (percentage <= 150) return { variant: 'secondary', text: 'Low Stock', color: 'text-warning' };
-    return { variant: 'default', text: 'Good Stock', color: 'text-success' };
   };
 
-  const getWeeksRemaining = (current: number, weekly: number) => {
-    return Math.floor(current / weekly);
-  };
+  const needsReorder = (current: number, reorderPoint: number) => current <= reorderPoint;
+  const lowStock = (current: number, reorderPoint: number) => current <= reorderPoint * 1.5 && current > reorderPoint;
 
-  const getStockPercentage = (current: number, reorder: number) => {
-    return Math.min(100, (current / (reorder * 2)) * 100);
-  };
+  const criticalCount = cityConsumables.filter(c => needsReorder(c.currentStock, c.reorderPoint)).length;
+  const lowStockCount = cityConsumables.filter(c => lowStock(c.currentStock, c.reorderPoint)).length;
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold">Consumables & Vendors</h3>
-        <Button variant="outline">
-          <Package className="h-4 w-4 mr-2" />
-          Place Order
-        </Button>
+        <h3 className="text-lg font-semibold">Consumables - {selectedCity.charAt(0).toUpperCase() + selectedCity.slice(1)}</h3>
+        <Dialog open={isNewConsumableOpen} onOpenChange={setIsNewConsumableOpen}>
+          <DialogTrigger asChild>
+            <Button variant="default">
+              <Plus className="h-4 w-4 mr-2" />
+              Add Consumable
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>{editingConsumable ? 'Edit Consumable' : 'Add New Consumable'}</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="name">Name</Label>
+                  <Input
+                    id="name"
+                    value={newConsumable.name}
+                    onChange={(e) => setNewConsumable(prev => ({ ...prev, name: e.target.value }))}
+                    placeholder="e.g., CO₂ Cartridges"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="category">Category</Label>
+                  <Input
+                    id="category"
+                    value={newConsumable.category}
+                    onChange={(e) => setNewConsumable(prev => ({ ...prev, category: e.target.value }))}
+                    placeholder="e.g., SFX"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="currentStock">Current Stock</Label>
+                  <Input
+                    id="currentStock"
+                    type="number"
+                    value={newConsumable.currentStock}
+                    onChange={(e) => setNewConsumable(prev => ({ ...prev, currentStock: Number(e.target.value) }))}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="weeklyUsage">Weekly Usage</Label>
+                  <Input
+                    id="weeklyUsage"
+                    type="number"
+                    value={newConsumable.weeklyUsage}
+                    onChange={(e) => setNewConsumable(prev => ({ ...prev, weeklyUsage: Number(e.target.value) }))}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="reorderPoint">Reorder Point</Label>
+                  <Input
+                    id="reorderPoint"
+                    type="number"
+                    value={newConsumable.reorderPoint}
+                    onChange={(e) => setNewConsumable(prev => ({ ...prev, reorderPoint: Number(e.target.value) }))}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="unit">Unit</Label>
+                  <Input
+                    id="unit"
+                    value={newConsumable.unit}
+                    onChange={(e) => setNewConsumable(prev => ({ ...prev, unit: e.target.value }))}
+                    placeholder="e.g., pieces, kg, liters"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="supplier">Supplier</Label>
+                  <Input
+                    id="supplier"
+                    value={newConsumable.supplier}
+                    onChange={(e) => setNewConsumable(prev => ({ ...prev, supplier: e.target.value }))}
+                    placeholder="Supplier name"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="lastOrdered">Last Ordered</Label>
+                  <Input
+                    id="lastOrdered"
+                    type="date"
+                    value={newConsumable.lastOrdered}
+                    onChange={(e) => setNewConsumable(prev => ({ ...prev, lastOrdered: e.target.value }))}
+                  />
+                </div>
+              </div>
+              <Button 
+                onClick={editingConsumable ? handleSaveEdit : handleCreateConsumable} 
+                className="w-full"
+              >
+                {editingConsumable ? 'Save Changes' : 'Add Consumable'}
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
 
-      {/* Stock Overview */}
+      {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card className="bg-gradient-card border-border/50">
           <CardContent className="p-4">
@@ -149,43 +180,40 @@ export function ConsumablesTab() {
               <AlertTriangle className="h-4 w-4 text-destructive" />
               <div>
                 <div className="text-xs text-muted-foreground">Critical Stock</div>
-                <div className="text-lg font-bold">2 Items</div>
+                <div className="text-lg font-bold">{criticalCount}</div>
               </div>
             </div>
           </CardContent>
         </Card>
-        
         <Card className="bg-gradient-card border-border/50">
           <CardContent className="p-4">
             <div className="flex items-center gap-2">
               <TrendingDown className="h-4 w-4 text-warning" />
               <div>
                 <div className="text-xs text-muted-foreground">Low Stock</div>
-                <div className="text-lg font-bold">1 Item</div>
+                <div className="text-lg font-bold">{lowStockCount}</div>
               </div>
             </div>
           </CardContent>
         </Card>
-        
         <Card className="bg-gradient-card border-border/50">
           <CardContent className="p-4">
             <div className="flex items-center gap-2">
               <Package className="h-4 w-4 text-primary" />
               <div>
                 <div className="text-xs text-muted-foreground">Total Items</div>
-                <div className="text-lg font-bold">5</div>
+                <div className="text-lg font-bold">{cityConsumables.length}</div>
               </div>
             </div>
           </CardContent>
         </Card>
-        
         <Card className="bg-gradient-card border-border/50">
           <CardContent className="p-4">
             <div className="flex items-center gap-2">
-              <Calendar className="h-4 w-4 text-success" />
+              <ShoppingCart className="h-4 w-4 text-success" />
               <div>
-                <div className="text-xs text-muted-foreground">Orders This Week</div>
-                <div className="text-lg font-bold">3</div>
+                <div className="text-xs text-muted-foreground">Orders Placed</div>
+                <div className="text-lg font-bold">{Object.values(orderStatus).filter(s => s === 'ordered').length}</div>
               </div>
             </div>
           </CardContent>
@@ -193,119 +221,214 @@ export function ConsumablesTab() {
       </div>
 
       {/* Consumables List */}
-      <Card className="bg-gradient-card border-border/50">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Package className="h-5 w-5 text-primary" />
-            Stock Levels & Usage
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            {consumables_data.map((item) => {
-              const status = getStockStatus(item.currentStock, item.reorderPoint);
-              const weeksRemaining = getWeeksRemaining(item.currentStock, item.weeklyUsage);
-              const stockPercentage = getStockPercentage(item.currentStock, item.reorderPoint);
-              
-              return (
-                <div key={item.id} className="p-4 bg-muted/30 rounded border border-border/30">
-                  <div className="flex items-center justify-between mb-3">
-                    <div>
-                      <div className="font-medium">{item.name}</div>
-                      <div className="text-sm text-muted-foreground">
-                        {item.currentStock} {item.unit} available • {item.weeklyUsage} {item.unit}/week usage
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Badge variant={status.variant as any}>
-                        {status.text}
+      <div className="space-y-4">
+        {cityConsumables.map((consumable) => {
+          const needsReorderStatus = needsReorder(consumable.currentStock, consumable.reorderPoint);
+          const lowStockStatus = lowStock(consumable.currentStock, consumable.reorderPoint);
+          
+          return (
+            <Card key={consumable.id} className="bg-gradient-card border-border/50">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center gap-2">
+                    <Package className="h-4 w-4 text-primary" />
+                    {consumable.name}
+                  </CardTitle>
+                  <div className="flex items-center gap-2">
+                    <Badge variant={needsReorderStatus ? 'destructive' : lowStockStatus ? 'secondary' : 'default'}>
+                      {needsReorderStatus ? 'Reorder Now' : lowStockStatus ? 'Low Stock' : 'In Stock'}
+                    </Badge>
+                    <Badge variant="outline">
+                      {consumable.category}
+                    </Badge>
+                    {orderStatus[consumable.id] && (
+                      <Badge 
+                        variant={orderStatus[consumable.id] === 'delivered' ? 'default' : 'secondary'}
+                        className={orderStatus[consumable.id] === 'ordered' ? 'animate-pulse' : ''}
+                      >
+                        {orderStatus[consumable.id] === 'pending' && 'Pending Order'}
+                        {orderStatus[consumable.id] === 'ordered' && (
+                          <>
+                            <ShoppingCart className="h-3 w-3 mr-1" />
+                            Ordered
+                          </>
+                        )}
+                        {orderStatus[consumable.id] === 'delivered' && (
+                          <>
+                            <CheckCircle className="h-3 w-3 mr-1" />
+                            Delivered
+                          </>
+                        )}
                       </Badge>
-                      <div className="text-sm text-muted-foreground">
-                        {weeksRemaining} weeks left
-                      </div>
-                    </div>
+                    )}
                   </div>
-                  
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between text-sm">
-                      <span>Stock Level</span>
-                      <span className={status.color}>
-                        {item.currentStock}/{item.reorderPoint * 2} {item.unit}
-                      </span>
-                    </div>
-                    <Progress value={stockPercentage} className="h-2" />
-                  </div>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-3 pt-3 border-t border-border/30 text-sm">
-                    <div>
-                      <span className="text-muted-foreground">Supplier:</span>
-                      <span className="ml-2">{item.supplier}</span>
-                    </div>
-                    <div>
-                      <span className="text-muted-foreground">Last Ordered:</span>
-                      <span className="ml-2">{item.lastOrdered}</span>
-                    </div>
-                    <div>
-                      <span className="text-muted-foreground">Lead Time:</span>
-                      <span className="ml-2">{item.leadTime}</span>
-                    </div>
-                  </div>
-                  
-                  {item.currentStock <= item.reorderPoint && (
-                    <div className="mt-3 pt-3 border-t border-destructive/30">
-                      <Button variant="destructive" size="sm" className="w-full">
-                        <AlertTriangle className="h-3 w-3 mr-2" />
-                        Reorder Now - {item.reorderPoint * 2} {item.unit}
-                      </Button>
-                    </div>
-                  )}
                 </div>
-              );
-            })}
-          </div>
-        </CardContent>
-      </Card>
+              </CardHeader>
+              
+              <CardContent>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                  <div className="text-sm">
+                    <div className="text-muted-foreground">Current Stock</div>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        type="number"
+                        value={consumable.currentStock}
+                        onChange={(e) => updateConsumable(consumable.id, { currentStock: Number(e.target.value) })}
+                        className="w-16 h-6 text-xs"
+                      />
+                      <span className="text-xs">{consumable.unit}</span>
+                    </div>
+                  </div>
+                  
+                  <div className="text-sm">
+                    <div className="text-muted-foreground">Weekly Usage</div>
+                    <div className="font-medium">{consumable.weeklyUsage} {consumable.unit}</div>
+                  </div>
+                  
+                  <div className="text-sm">
+                    <div className="text-muted-foreground">Reorder Point</div>
+                    <div className="font-medium">{consumable.reorderPoint} {consumable.unit}</div>
+                  </div>
+                  
+                  <div className="text-sm">
+                    <div className="text-muted-foreground">Supplier</div>
+                    <div className="font-medium">{consumable.supplier}</div>
+                  </div>
+                </div>
+                
+                <div className="flex gap-2 mt-4 pt-4 border-t border-border/30">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleEditConsumable(consumable)}
+                  >
+                    <Edit className="h-3 w-3 mr-2" />
+                    Edit
+                  </Button>
+                  
+                  <Select 
+                    value={orderStatus[consumable.id] || 'pending'} 
+                    onValueChange={(value) => setOrderStatus(prev => ({ ...prev, [consumable.id]: value as any }))}
+                  >
+                    <SelectTrigger className="w-32">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="pending">Pending</SelectItem>
+                      <SelectItem value="ordered">Ordered</SelectItem>
+                      <SelectItem value="delivered">Delivered</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  
+                  <Button
+                    variant={needsReorderStatus ? "destructive" : "default"}
+                    size="sm"
+                    className={needsReorderStatus ? "animate-pulse" : ""}
+                    onClick={() => {
+                      setOrderStatus(prev => ({ ...prev, [consumable.id]: 'ordered' }));
+                      updateConsumable(consumable.id, { lastOrdered: new Date().toISOString().split('T')[0] });
+                    }}
+                  >
+                    <ShoppingCart className="h-3 w-3 mr-2" />
+                    {orderStatus[consumable.id] === 'ordered' ? 'Reorder' : 'Place Order'}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
 
-      {/* Vendor Contacts */}
-      <Card className="bg-gradient-card border-border/50">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Phone className="h-5 w-5 text-primary" />
-            Vendor Contacts & SLA
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-4">
-            {vendors.map((vendor, index) => (
-              <div key={index} className="p-3 bg-muted/30 rounded border border-border/30">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="font-medium">{vendor.name}</div>
-                  <div className="flex items-center gap-1">
-                    <span className="text-sm text-warning">★</span>
-                    <span className="text-sm font-medium">{vendor.rating}</span>
-                  </div>
+      {/* Edit Dialog */}
+      {editingConsumable && (
+        <Dialog open={!!editingConsumable} onOpenChange={() => setEditingConsumable(null)}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Edit {editingConsumable.name}</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="editName">Name</Label>
+                  <Input
+                    id="editName"
+                    value={newConsumable.name}
+                    onChange={(e) => setNewConsumable(prev => ({ ...prev, name: e.target.value }))}
+                  />
                 </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
-                  <div>
-                    <span className="text-muted-foreground">Phone:</span>
-                    <span className="ml-2">{vendor.contact}</span>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground">Email:</span>
-                    <span className="ml-2">{vendor.email}</span>
-                  </div>
+                <div>
+                  <Label htmlFor="editCategory">Category</Label>
+                  <Input
+                    id="editCategory"
+                    value={newConsumable.category}
+                    onChange={(e) => setNewConsumable(prev => ({ ...prev, category: e.target.value }))}
+                  />
                 </div>
-                
-                <div className="text-sm mt-2">
-                  <span className="text-muted-foreground">SLA:</span>
-                  <span className="ml-2">{vendor.sla}</span>
+                <div>
+                  <Label htmlFor="editCurrentStock">Current Stock</Label>
+                  <Input
+                    id="editCurrentStock"
+                    type="number"
+                    value={newConsumable.currentStock}
+                    onChange={(e) => setNewConsumable(prev => ({ ...prev, currentStock: Number(e.target.value) }))}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="editWeeklyUsage">Weekly Usage</Label>
+                  <Input
+                    id="editWeeklyUsage"
+                    type="number"
+                    value={newConsumable.weeklyUsage}
+                    onChange={(e) => setNewConsumable(prev => ({ ...prev, weeklyUsage: Number(e.target.value) }))}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="editReorderPoint">Reorder Point</Label>
+                  <Input
+                    id="editReorderPoint"
+                    type="number"
+                    value={newConsumable.reorderPoint}
+                    onChange={(e) => setNewConsumable(prev => ({ ...prev, reorderPoint: Number(e.target.value) }))}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="editUnit">Unit</Label>
+                  <Input
+                    id="editUnit"
+                    value={newConsumable.unit}
+                    onChange={(e) => setNewConsumable(prev => ({ ...prev, unit: e.target.value }))}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="editSupplier">Supplier</Label>
+                  <Input
+                    id="editSupplier"
+                    value={newConsumable.supplier}
+                    onChange={(e) => setNewConsumable(prev => ({ ...prev, supplier: e.target.value }))}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="editLastOrdered">Last Ordered</Label>
+                  <Input
+                    id="editLastOrdered"
+                    type="date"
+                    value={newConsumable.lastOrdered}
+                    onChange={(e) => setNewConsumable(prev => ({ ...prev, lastOrdered: e.target.value }))}
+                  />
                 </div>
               </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={() => setEditingConsumable(null)} className="flex-1">
+                  Cancel
+                </Button>
+                <Button onClick={handleSaveEdit} className="flex-1">
+                  Save Changes
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }
