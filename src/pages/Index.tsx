@@ -1,17 +1,38 @@
 import { WeekPicker } from "@/components/vault/WeekPicker";
 import { CityToggle } from "@/components/vault/CityToggle";
 import { KPICards } from "@/components/vault/KPICards";
-
 import { VaultTabs } from "@/components/vault/VaultTabs";
+import { NotificationCenter } from "@/components/NotificationCenter";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import { useVaultStore } from "@/store/vaultStore";
-import { Activity, Zap } from "lucide-react";
+import { useAuthStore } from "@/store/authStore";
+import { useWebSocket } from "@/contexts/WebSocketContext";
+import { Activity, Zap, LogOut, User, Users, Shield, BarChart3, DollarSign } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const Index = () => {
   const { selectedCity, alerts } = useVaultStore();
+  const { user, logout } = useAuthStore();
+  const { connected } = useWebSocket();
+  const navigate = useNavigate();
+  
   const unacknowledgedAlerts = alerts.filter(alert => 
     !alert.acknowledged && alert.city === selectedCity
   ).length;
+
+  const handleLogout = async () => {
+    await logout();
+    navigate('/login');
+  };
 
   const getCurrentTime = () => {
     const now = new Date();
@@ -43,9 +64,53 @@ const Index = () => {
               </div>
             </div>
             <div className="flex items-center gap-4">
+              {user && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="sm" className="flex items-center gap-2">
+                      <User className="h-4 w-4" />
+                      <span>{user.name}</span>
+                      <Badge variant="secondary" className="text-xs">{user.role}</Badge>
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => navigate('/profile')}>
+                      <User className="h-4 w-4 mr-2" />
+                      My Profile
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => navigate('/analytics/financial')}>
+                      <BarChart3 className="h-4 w-4 mr-2" />
+                      Financial Analytics
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => navigate('/analytics/equipment')}>
+                      <Activity className="h-4 w-4 mr-2" />
+                      Equipment Analytics
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => navigate('/analytics/team')}>
+                      <Users className="h-4 w-4 mr-2" />
+                      Team Analytics
+                    </DropdownMenuItem>
+                    {user.role === 'admin' && (
+                      <>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={() => navigate('/users')}>
+                          <Users className="h-4 w-4 mr-2" />
+                          User Management
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => navigate('/permissions')}>
+                          <Shield className="h-4 w-4 mr-2" />
+                          Permission Matrix
+                        </DropdownMenuItem>
+                      </>
+                    )}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
+              <NotificationCenter />
               <Badge variant="outline" className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-success animate-pulse" />
-                System Online
+                <div className={`w-2 h-2 rounded-full ${connected ? 'bg-success' : 'bg-destructive'} animate-pulse`} />
+                {connected ? 'System Online' : 'Connecting...'}
               </Badge>
               {unacknowledgedAlerts > 0 && (
                 <Badge variant="destructive" className="flex items-center gap-2">
@@ -59,6 +124,15 @@ const Index = () => {
                   {selectedCity === 'jakarta' ? 'WIB (UTC+7)' : 'WITA (UTC+8)'}
                 </p>
               </div>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={handleLogout}
+                className="flex items-center gap-2"
+              >
+                <LogOut className="h-4 w-4" />
+                Logout
+              </Button>
             </div>
           </div>
         </div>
@@ -75,6 +149,68 @@ const Index = () => {
         {/* KPI Cards */}
         <KPICards />
 
+        {/* Quick Analytics Access */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <Card 
+            className="cursor-pointer hover:border-primary transition-all hover:shadow-lg"
+            onClick={() => navigate('/analytics/financial')}
+          >
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="p-3 rounded-lg bg-primary/10">
+                    <DollarSign className="h-6 w-6 text-primary" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-lg">Financial Analytics</h3>
+                    <p className="text-sm text-muted-foreground">Revenue, costs, and ROI tracking</p>
+                  </div>
+                </div>
+                <BarChart3 className="h-8 w-8 text-muted-foreground" />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card 
+            className="cursor-pointer hover:border-primary transition-all hover:shadow-lg"
+            onClick={() => navigate('/analytics/equipment')}
+          >
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="p-3 rounded-lg bg-success/10">
+                    <Activity className="h-6 w-6 text-success" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-lg">Equipment Analytics</h3>
+                    <p className="text-sm text-muted-foreground">MTBF, reliability, and failures</p>
+                  </div>
+                </div>
+                <Activity className="h-8 w-8 text-muted-foreground" />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card 
+            className="cursor-pointer hover:border-primary transition-all hover:shadow-lg"
+            onClick={() => navigate('/analytics/team')}
+          >
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="p-3 rounded-lg bg-warning/10">
+                    <Users className="h-6 w-6 text-warning" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-lg">Team Analytics</h3>
+                    <p className="text-sm text-muted-foreground">Performance and training insights</p>
+                  </div>
+                </div>
+                <Users className="h-8 w-8 text-muted-foreground" />
+              </div>
+            </CardContent>
+          </Card>
+        </div>
 
         {/* Tabbed Interface */}
         <VaultTabs />

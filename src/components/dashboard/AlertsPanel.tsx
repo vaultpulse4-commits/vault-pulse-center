@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { useDashboardStore } from "@/store/dashboardStore";
 import { AlertTriangle, Bell, CheckCircle, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { formatDateTime } from "@/lib/dateUtils";
 
 export function AlertsPanel() {
   const { alerts, acknowledgeAlert, acknowledgeAllAlerts } = useDashboardStore();
@@ -87,7 +88,7 @@ export function AlertsPanel() {
                     </Badge>
                   </div>
                   <p className="text-sm text-muted-foreground mt-1">{alert.message}</p>
-                  <p className="text-xs text-muted-foreground mt-2">{alert.timestamp}</p>
+                  <p className="text-xs text-muted-foreground mt-2">{formatDateTime(alert.timestamp)}</p>
                 </div>
               </div>
               <div className="flex items-center gap-1">

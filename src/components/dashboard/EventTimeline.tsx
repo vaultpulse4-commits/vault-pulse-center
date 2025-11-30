@@ -2,6 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useDashboardStore } from "@/store/dashboardStore";
 import { Calendar, Clock, Users } from "lucide-react";
+import { formatDate } from "@/lib/dateUtils";
 
 export function EventTimeline() {
   const { events } = useDashboardStore();
@@ -41,7 +42,7 @@ export function EventTimeline() {
                   <div className="flex items-center gap-4 text-sm text-muted-foreground mt-1">
                     <span className="flex items-center gap-1">
                       <Calendar className="h-3 w-3" />
-                      {event.date}
+                      {formatDate(event.date)}
                     </span>
                     <span className="flex items-center gap-1">
                       <Clock className="h-3 w-3" />

@@ -1,0 +1,88 @@
+# ========================================
+# FILES TO EXCLUDE WHEN SENDING TO CUSTOMER
+# ========================================
+# Use this list when creating zip package for customer delivery
+
+# Development/Internal Documentation (EXCLUDE)
+COMMIT_SUMMARY.md
+IMPLEMENTATION_STATUS.md
+AUTH_COMPLETE.md
+AUTH_IMPLEMENTATION_COMPLETE.md
+BACKEND_COMPLETE.md
+SETUP_COMPLETE.md
+EVENT_BRIEFS_IMPLEMENTATION.md
+SHIFT_MAINTENANCE_IMPLEMENTATION.md
+TESTING_CHECKLIST.md
+PRE_DEPLOYMENT_CHECKLIST.md
+server/SETUP_COMPLETE.md
+
+# Keep these for customer:
+# README.md - Main documentation (KEEP)
+# SETUP_INSTRUCTIONS.md - Setup guide (KEEP)
+# DEPLOYMENT.md - Deployment guide (KEEP)
+# TESTING_GUIDE.md - Testing guide (KEEP)
+# PWA_DOCUMENTATION.md - PWA features (KEEP)
+# PWA_SUMMARY.md - PWA overview (KEEP)
+# PWA_TEST_GUIDE.md - PWA testing (KEEP)
+# QUICKSTART.md - Quick start (KEEP)
+# DATABASE_SETUP.md - DB setup (KEEP)
+# server/README.md - API docs (KEEP)
+
+# Environment files (EXCLUDE originals, include templates)
+.env
+server/.env
+*.local
+
+# Dependencies (EXCLUDE - customer will install)
+node_modules/
+server/node_modules/
+.pnp
+.pnp.js
+
+# Build outputs (EXCLUDE)
+dist/
+server/dist/
+build/
+.next/
+out/
+
+# Testing (EXCLUDE)
+coverage/
+.nyc_output
+
+# IDE / Editor (EXCLUDE)
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Logs (EXCLUDE)
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+.pnpm-debug.log*
+
+# OS files (EXCLUDE)
+Thumbs.db
+.DS_Store
+
+# Temporary files (EXCLUDE)
+*.tmp
+*.temp
+.cache/
+
+# Git (EXCLUDE)
+.git/
+.gitattributes
+
+# Lock files (OPTIONAL - recommend keeping for consistency)
+# Uncomment to exclude:
+# package-lock.json
+# yarn.lock
+# pnpm-lock.yaml
+# bun.lockb

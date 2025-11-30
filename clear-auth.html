@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Clear Auth - Vault Pulse Center</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+        button {
+            background: #ef4444;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 5px;
+        }
+        button:hover {
+            background: #dc2626;
+        }
+        .success {
+            background: #10b981;
+        }
+        .success:hover {
+            background: #059669;
+        }
+        #status {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 6px;
+            display: none;
+        }
+        .info {
+            background: #dbeafe;
+            border: 1px solid #3b82f6;
+            color: #1e40af;
+        }
+        .error {
+            background: #fee2e2;
+            border: 1px solid #ef4444;
+            color: #991b1b;
+        }
+        pre {
+            background: #f9fafb;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 Vault Pulse Center - Auth Manager</h1>
+        <p>Gunakan tool ini untuk mengelola authentication storage</p>
+        
+        <div style="margin: 20px 0;">
+            <button onclick="checkStorage()">📊 Check Storage</button>
+            <button onclick="clearAll()">🗑️ Clear All Storage</button>
+            <button class="success" onclick="goToLogin()">🔐 Go to Login</button>
+        </div>
+        
+        <div id="status"></div>
+    </div>
+
+    <script>
+        function showStatus(message, type = 'info') {
+            const statusDiv = document.getElementById('status');
+            statusDiv.className = type;
+            statusDiv.innerHTML = message;
+            statusDiv.style.display = 'block';
+        }
+
+        function checkStorage() {
+            const vaultAuth = localStorage.getItem('vault-auth-storage');
+            const token = localStorage.getItem('token');
+            const user = localStorage.getItem('user');
+            
+            let html = '<h3>📦 Current Storage:</h3>';
+            
+            if (vaultAuth) {
+                try {
+                    const parsed = JSON.parse(vaultAuth);
+                    html += '<p><strong>vault-auth-storage:</strong></p>';
+                    html += '<pre>' + JSON.stringify(parsed, null, 2) + '</pre>';
+                } catch (e) {
+                    html += '<p><strong>vault-auth-storage:</strong> (Invalid JSON)</p>';
+                }
+            } else {
+                html += '<p><strong>vault-auth-storage:</strong> ❌ Not found</p>';
+            }
+            
+            if (token) {
+                html += '<p><strong>token:</strong> ✅ Found (length: ' + token.length + ')</p>';
+                html += '<pre>' + token.substring(0, 50) + '...</pre>';
+            } else {
+                html += '<p><strong>token:</strong> ❌ Not found</p>';
+            }
+            
+            if (user) {
+                html += '<p><strong>user:</strong> ✅ Found</p>';
+            } else {
+                html += '<p><strong>user:</strong> ❌ Not found</p>';
+            }
+            
+            const allKeys = Object.keys(localStorage);
+            html += '<p><strong>Total localStorage keys:</strong> ' + allKeys.length + '</p>';
+            
+            showStatus(html, 'info');
+        }
+
+        function clearAll() {
+            if (confirm('⚠️ Clear semua auth data? Anda harus login ulang.')) {
+                localStorage.removeItem('vault-auth-storage');
+                localStorage.removeItem('token');
+                localStorage.removeItem('user');
+                
+                showStatus(
+                    '<h3>✅ Storage Cleared!</h3>' +
+                    '<p>Semua auth data telah dihapus:</p>' +
+                    '<ul>' +
+                    '<li>✅ vault-auth-storage - Removed</li>' +
+                    '<li>✅ token - Removed</li>' +
+                    '<li>✅ user - Removed</li>' +
+                    '</ul>' +
+                    '<p><strong>Sekarang Anda bisa login ulang dengan token baru!</strong></p>',
+                    'info'
+                );
+            }
+        }
+
+        function goToLogin() {
+            window.location.href = 'http://localhost:5173/login';
+        }
+
+        // Auto check on load
+        window.onload = () => {
+            checkStorage();
+        };
+    </script>
+</body>
+</html>

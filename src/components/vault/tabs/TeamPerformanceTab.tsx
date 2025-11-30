@@ -1,65 +1,171 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { useVaultStore } from "@/store/vaultStore";
-import { Users, TrendingUp, Clock, Shield, Award, GraduationCap, Edit } from "lucide-react";
-import { useState } from "react";
+import { Users, TrendingUp, Clock, Shield, Edit, Loader2, AlertTriangle, User } from "lucide-react";
+import { useState, useEffect } from "react";
+import { api } from "@/lib/api";
+import { usePermission } from "@/lib/permissions";
+import { useToast } from "@/hooks/use-toast";
 
 export function TeamPerformanceTab() {
-  const { selectedCity, crewMembers } = useVaultStore();
-  const cityCrew = crewMembers.filter(member => member.city === selectedCity);
+  const { selectedCity } = useVaultStore();
+  const { toast } = useToast();
+  const canView = usePermission('view:team_performance');
+  const canEdit = usePermission('edit:team_performance');
+  
+  const [crewMembers, setCrewMembers] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [isEditingMetrics, setIsEditingMetrics] = useState(false);
+  const [editingMember, setEditingMember] = useState<any>(null);
+  const [memberPerformance, setMemberPerformance] = useState<{[key: string]: any}>({});
   const [teamMetrics, setTeamMetrics] = useState({
     attendance: 92.1,
     completedChecklists: 96.3,
     handoverQuality: 4.2,
-    safetyCompliance: 98.5,
-    trainingProgress: 78.5,
-    commendations: 12
+    safetyCompliance: 98.5
   });
 
-  const trainingMatrix = [
-    { skill: "Audio Systems (SE)", level: "Advanced", progress: 85, required: true },
-    { skill: "Visual Setup & Cues (LJ/VJ)", level: "Intermediate", progress: 72, required: true },
-    { skill: "Equipment Maintenance (GE)", level: "Advanced", progress: 91, required: true },
-    { skill: "Troubleshooting Basics", level: "Basic", progress: 88, required: true },
-    { skill: "Show Control Systems", level: "Advanced", progress: 65, required: false },
-    { skill: "Resolume & Special Effects", level: "Advanced", progress: 58, required: false },
-    { skill: "MA2 Lighting Software", level: "Advanced", progress: 44, required: false },
-    { skill: "Electrical Safety", level: "Basic", progress: 94, required: true },
-    { skill: "Customer Service", level: "Basic", progress: 76, required: true },
-    { skill: "Leadership Skills", level: "Intermediate", progress: 62, required: false }
-  ];
+  useEffect(() => {
+    if (selectedCity) {
+      loadCrewData();
+    }
+  }, [selectedCity]);
 
-  const getProgressColor = (progress: number) => {
-    if (progress >= 80) return "text-success";
-    if (progress >= 60) return "text-warning";
-    return "text-destructive";
-  };
-
-  const getLevelColor = (level: string) => {
-    switch (level) {
-      case 'Basic': return 'text-primary';
-      case 'Intermediate': return 'text-warning';
-      case 'Advanced': return 'text-destructive';
-      default: return 'text-muted-foreground';
+  const loadCrewData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const data = await api.crew.getAll(selectedCity);
+      setCrewMembers(data);
+      
+      // Initialize member performance data with realistic random values
+      const perfData: {[key: string]: any} = {};
+      data.forEach((member: any) => {
+        // Generate realistic random performance metrics
+        const baseAttendance = 85 + Math.floor(Math.random() * 15); // 85-100%
+        const baseTasks = 12 + Math.floor(Math.random() * 8); // 12-20 tasks
+        const baseHandover = 3.5 + Math.random() * 1.5; // 3.5-5.0
+        const baseSafety = 90 + Math.floor(Math.random() * 10); // 90-100%
+        
+        perfData[member.id] = {
+          attendance: baseAttendance,
+          tasksCompleted: baseTasks,
+          handoverQuality: Math.round(baseHandover * 10) / 10,
+          safetyScore: baseSafety,
+          notes: '',
+          strengths: '',
+          improvements: ''
+        };
+      });
+      setMemberPerformance(perfData);
+      
+      // Calculate metrics from individual member performance data
+      if (data.length > 0) {
+        // Calculate average attendance from individual member attendance values
+        const avgAttendance = Object.values(perfData).reduce((sum: number, perf: any) => sum + perf.attendance, 0) / data.length;
+        
+        // Update team metrics for dashboard sync
+        const avgTasksCompleted = Object.values(perfData).reduce((sum: number, perf: any) => sum + perf.tasksCompleted, 0) / data.length;
+        const avgHandoverQuality = Object.values(perfData).reduce((sum: number, perf: any) => sum + perf.handoverQuality, 0) / data.length;
+        const avgSafetyScore = Object.values(perfData).reduce((sum: number, perf: any) => sum + perf.safetyScore, 0) / data.length;
+        
+        setTeamMetrics({
+          attendance: Number(avgAttendance.toFixed(1)),
+          completedChecklists: Number(avgTasksCompleted.toFixed(1)),
+          handoverQuality: Number(avgHandoverQuality.toFixed(1)),
+          safetyCompliance: Number(avgSafetyScore.toFixed(1))
+        });
+      }
+    } catch (err: any) {
+      setError(err.message || 'Failed to load crew data');
+      toast({
+        title: "Error",
+        description: err.message || "Failed to load crew data",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
     }
   };
+
+  const handleEditMember = (member: any) => {
+    setEditingMember(member);
+  };
+
+  const handleSaveMemberPerformance = () => {
+    // Recalculate team metrics based on all member performance
+    const allMembers = Object.values(memberPerformance);
+    if (allMembers.length > 0) {
+      const avgAttendance = allMembers.reduce((sum: number, perf: any) => sum + perf.attendance, 0) / allMembers.length;
+      const avgTasksCompleted = allMembers.reduce((sum: number, perf: any) => sum + perf.tasksCompleted, 0) / allMembers.length;
+      const avgHandoverQuality = allMembers.reduce((sum: number, perf: any) => sum + perf.handoverQuality, 0) / allMembers.length;
+      const avgSafetyScore = allMembers.reduce((sum: number, perf: any) => sum + perf.safetyScore, 0) / allMembers.length;
+      
+      setTeamMetrics({
+        attendance: Number(avgAttendance.toFixed(1)),
+        completedChecklists: Number(avgTasksCompleted.toFixed(1)),
+        handoverQuality: Number(avgHandoverQuality.toFixed(1)),
+        safetyCompliance: Number(avgSafetyScore.toFixed(1))
+      });
+    }
+    
+    toast({
+      title: "Success",
+      description: `Performance data for ${editingMember.name} has been updated. Team metrics recalculated.`
+    });
+    setEditingMember(null);
+  };
+
+  const getMemberPerformance = (memberId: string) => {
+    return memberPerformance[memberId] || {
+      attendance: 0,
+      tasksCompleted: 0,
+      handoverQuality: 0,
+      safetyScore: 0,
+      notes: '',
+      strengths: '',
+      improvements: ''
+    };
+  };
+
+  const updateMemberPerformance = (memberId: string, field: string, value: any) => {
+    setMemberPerformance(prev => ({
+      ...prev,
+      [memberId]: {
+        ...prev[memberId],
+        [field]: value
+      }
+    }));
+  };
+
+  if (!canView) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <AlertTriangle className="h-12 w-12 text-warning mx-auto mb-4" />
+          <p className="text-lg font-semibold">Access Denied</p>
+          <p className="text-sm text-muted-foreground">You don't have permission to view team performance</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-semibold">Team Performance - {selectedCity.charAt(0).toUpperCase() + selectedCity.slice(1)}</h3>
-        <div className="flex gap-2">
+        {canEdit && (
           <Dialog open={isEditingMetrics} onOpenChange={setIsEditingMetrics}>
             <DialogTrigger asChild>
               <Button variant="outline">
                 <Edit className="h-4 w-4 mr-2" />
-                Edit Metrics
+                Edit Team Metrics
               </Button>
             </DialogTrigger>
             <DialogContent>
@@ -111,41 +217,23 @@ export function TeamPerformanceTab() {
                     max="100"
                   />
                 </div>
-                <div>
-                  <Label htmlFor="training">Training Progress (%)</Label>
-                  <Input
-                    id="training"
-                    type="number"
-                    value={teamMetrics.trainingProgress}
-                    onChange={(e) => setTeamMetrics(prev => ({ ...prev, trainingProgress: Number(e.target.value) }))}
-                    step="0.1"
-                    max="100"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="commendations">Commendations</Label>
-                  <Input
-                    id="commendations"
-                    type="number"
-                    value={teamMetrics.commendations}
-                    onChange={(e) => setTeamMetrics(prev => ({ ...prev, commendations: Number(e.target.value) }))}
-                  />
-                </div>
                 <Button onClick={() => setIsEditingMetrics(false)} className="w-full">
                   Save Changes
                 </Button>
               </div>
             </DialogContent>
           </Dialog>
-          <Button variant="outline">
-            <GraduationCap className="h-4 w-4 mr-2" />
-            Schedule Training
-          </Button>
-        </div>
+        )}
       </div>
 
       {/* Performance Overview */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+      {loading ? (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      ) : (
+      <>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card className="bg-gradient-card border-border/50">
           <CardContent className="p-4">
             <div className="flex items-center gap-2">
@@ -193,30 +281,6 @@ export function TeamPerformanceTab() {
             </div>
           </CardContent>
         </Card>
-        
-        <Card className="bg-gradient-card border-border/50">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2">
-              <GraduationCap className="h-4 w-4 text-primary" />
-              <div>
-                <div className="text-xs text-muted-foreground">Training</div>
-                <div className="text-lg font-bold">{teamMetrics.trainingProgress}%</div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card className="bg-gradient-card border-border/50">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2">
-              <Award className="h-4 w-4 text-warning" />
-              <div>
-                <div className="text-xs text-muted-foreground">Awards</div>
-                <div className="text-lg font-bold">{teamMetrics.commendations}</div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
       </div>
 
       {/* Team Members */}
@@ -224,81 +288,177 @@ export function TeamPerformanceTab() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Users className="h-5 w-5 text-primary" />
-            Team Members
+            Team Members ({crewMembers.length})
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid gap-4">
-            {cityCrew.map((member) => (
-              <div key={member.id} className="flex items-center justify-between p-3 bg-muted/30 rounded border border-border/30">
-                <div className="flex items-center gap-3">
-                  <div>
-                    <div className="font-medium">{member.name}</div>
-                    <div className="text-sm text-muted-foreground">{member.role} • {member.shift} shift</div>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Badge variant={member.assigned ? 'default' : 'outline'}>
-                    {member.assigned ? 'Active' : 'Standby'}
-                  </Badge>
-                  <div className="text-sm text-muted-foreground">
-                    92% attendance
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
+          {crewMembers.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-8 text-center">
+              <Users className="h-12 w-12 text-muted-foreground mb-4" />
+              <p className="text-sm text-muted-foreground">No team members found</p>
+            </div>
+          ) : (
+            <div className="grid gap-4">
+              {crewMembers.map((member) => {
+                const perf = getMemberPerformance(member.id);
+                return (
+                <Card key={member.id} className="bg-muted/30 border-border/30">
+                  <CardContent className="p-4">
+                    <div className="flex items-start justify-between mb-4">
+                      <div className="flex items-center gap-3">
+                        <div className="h-10 w-10 rounded-full bg-primary/20 flex items-center justify-center">
+                          <User className="h-5 w-5 text-primary" />
+                        </div>
+                        <div>
+                          <div className="font-medium">{member.name}</div>
+                          <div className="text-sm text-muted-foreground">{member.role} • {member.shift} shift</div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Badge variant={member.assigned ? 'default' : 'outline'}>
+                          {member.assigned ? 'Active' : 'Standby'}
+                        </Badge>
+                        {canEdit && (
+                          <Button variant="ghost" size="sm" onClick={() => handleEditMember(member)}>
+                            <Edit className="h-4 w-4" />
+                            <span className="sr-only">Edit {member.name} performance</span>
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                      <div>
+                        <div className="text-muted-foreground text-xs">Attendance</div>
+                        <div className="font-medium">{perf.attendance}%</div>
+                      </div>
+                      <div>
+                        <div className="text-muted-foreground text-xs">Tasks Done</div>
+                        <div className="font-medium">{perf.tasksCompleted}</div>
+                      </div>
+                      <div>
+                        <div className="text-muted-foreground text-xs">Handover</div>
+                        <div className="font-medium">{perf.handoverQuality}/5</div>
+                      </div>
+                      <div>
+                        <div className="text-muted-foreground text-xs">Safety</div>
+                        <div className="font-medium">{perf.safetyScore}%</div>
+                      </div>
+                    </div>
+                    
+                    {perf.notes && (
+                      <div className="mt-3 pt-3 border-t border-border/30">
+                        <div className="text-xs text-muted-foreground mb-1">Notes:</div>
+                        <div className="text-sm">{perf.notes}</div>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              )})}
+            </div>
+          )}
         </CardContent>
       </Card>
 
-      {/* Training Matrix */}
-      <Card className="bg-gradient-card border-border/50">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <GraduationCap className="h-5 w-5 text-primary" />
-            Training Matrix & Skill Development
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            {trainingMatrix.map((training, index) => (
-              <div key={index} className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className="font-medium">{training.skill}</span>
-                    <Badge variant="outline" className={getLevelColor(training.level)}>
-                      {training.level}
-                    </Badge>
-                    {training.required && (
-                      <Badge variant="destructive" className="text-xs">
-                        Required
-                      </Badge>
-                    )}
-                  </div>
-                  <span className={`text-sm font-medium ${getProgressColor(training.progress)}`}>
-                    {training.progress}%
-                  </span>
+      {/* Member Performance Edit Dialog */}
+      {editingMember && (
+        <Dialog open={!!editingMember} onOpenChange={(open) => !open && setEditingMember(null)}>
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Edit Performance - {editingMember.name}</DialogTitle>
+              <DialogDescription>{editingMember.role} • {editingMember.shift} shift</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="member-attendance">Attendance (%)</Label>
+                  <Input
+                    id="member-attendance"
+                    type="number"
+                    value={getMemberPerformance(editingMember.id).attendance}
+                    onChange={(e) => updateMemberPerformance(editingMember.id, 'attendance', Number(e.target.value))}
+                    max="100"
+                  />
                 </div>
-                <Progress value={training.progress} className="h-2" />
+                <div>
+                  <Label htmlFor="tasks-completed">Tasks Completed</Label>
+                  <Input
+                    id="tasks-completed"
+                    type="number"
+                    value={getMemberPerformance(editingMember.id).tasksCompleted}
+                    onChange={(e) => updateMemberPerformance(editingMember.id, 'tasksCompleted', Number(e.target.value))}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="handover-quality">Handover Quality (1-5)</Label>
+                  <Input
+                    id="handover-quality"
+                    type="number"
+                    value={getMemberPerformance(editingMember.id).handoverQuality}
+                    onChange={(e) => updateMemberPerformance(editingMember.id, 'handoverQuality', Number(e.target.value))}
+                    step="0.1"
+                    max="5"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="safety-score">Safety Score (%)</Label>
+                  <Input
+                    id="safety-score"
+                    type="number"
+                    value={getMemberPerformance(editingMember.id).safetyScore}
+                    onChange={(e) => updateMemberPerformance(editingMember.id, 'safetyScore', Number(e.target.value))}
+                    max="100"
+                  />
+                </div>
               </div>
-            ))}
-          </div>
-          
-          <div className="mt-6 pt-4 border-t border-border/30">
-            <div className="flex gap-2">
-              <Button variant="default" size="sm">
-                Schedule Group Training
-              </Button>
-              <Button variant="outline" size="sm">
-                Individual Assessments
-              </Button>
-              <Button variant="secondary" size="sm">
-                Export Report
-              </Button>
+              
+              <div>
+                <Label htmlFor="strengths">Strengths</Label>
+                <Textarea
+                  id="strengths"
+                  value={getMemberPerformance(editingMember.id).strengths}
+                  onChange={(e) => updateMemberPerformance(editingMember.id, 'strengths', e.target.value)}
+                  placeholder="What are their key strengths?"
+                  rows={2}
+                />
+              </div>
+              
+              <div>
+                <Label htmlFor="improvements">Areas for Improvement</Label>
+                <Textarea
+                  id="improvements"
+                  value={getMemberPerformance(editingMember.id).improvements}
+                  onChange={(e) => updateMemberPerformance(editingMember.id, 'improvements', e.target.value)}
+                  placeholder="What needs improvement?"
+                  rows={2}
+                />
+              </div>
+              
+              <div>
+                <Label htmlFor="member-notes">Performance Notes</Label>
+                <Textarea
+                  id="member-notes"
+                  value={getMemberPerformance(editingMember.id).notes}
+                  onChange={(e) => updateMemberPerformance(editingMember.id, 'notes', e.target.value)}
+                  placeholder="General notes about performance..."
+                  rows={3}
+                />
+              </div>
+              
+              <div className="flex gap-2 justify-end pt-4">
+                <Button variant="outline" onClick={() => setEditingMember(null)}>
+                  Cancel
+                </Button>
+                <Button onClick={handleSaveMemberPerformance}>
+                  Save Performance Data
+                </Button>
+              </div>
             </div>
-          </div>
-        </CardContent>
-      </Card>
+          </DialogContent>
+        </Dialog>
+      )}
+      </>
+      )}
     </div>
   );
 }

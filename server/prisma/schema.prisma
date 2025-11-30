@@ -1,0 +1,593 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum City {
+  jakarta
+  bali
+}
+
+enum ShiftType {
+  day
+  night
+}
+
+enum EquipmentStatus {
+  Ready
+  Degraded
+  OOS
+  In_Transit
+  Spare
+}
+
+enum RiskLevel {
+  Low
+  Med
+  High
+}
+
+enum BriefStatus {
+  Draft
+  Final
+}
+
+enum MaintenanceType {
+  Preventive
+  Corrective
+}
+
+enum MaintenanceStatus {
+  Completed
+  In_Progress
+  Scheduled
+}
+
+enum IncidentType {
+  Audio
+  Lighting
+  Video
+  Power
+  Safety
+}
+
+enum ProposalType {
+  CapEx
+  OpEx
+}
+
+enum ProposalUrgency {
+  High
+  Medium
+  Low
+}
+
+enum ProposalStatus {
+  Pending
+  Approved
+  Rejected
+  Completed
+}
+
+enum RndPhase {
+  Idea
+  POC
+  Pilot
+  Live
+}
+
+enum RndStatus {
+  Active
+  OnHold
+  Completed
+  Archived
+}
+
+enum AlertType {
+  critical
+  warning
+  info
+}
+
+enum PurchaseOrderStatus {
+  Draft
+  Submitted
+  Approved
+  Ordered
+  PartiallyReceived
+  Received
+  Cancelled
+}
+
+enum StockMovementType {
+  Purchase
+  Usage
+  Adjustment
+  Return
+  Transfer
+  Waste
+}
+
+enum SupplierStatus {
+  Active
+  Inactive
+  Suspended
+}
+
+model Equipment {
+  id              String            @id @default(uuid())
+  name            String
+  status          EquipmentStatus   @default(Ready)
+  lastInspection  DateTime
+  nextDue         DateTime
+  firmware        String
+  photo           String?           // URL to equipment photo
+  description     String            @default("")
+  areaId          String?           // Now references Area table
+  city            City
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  
+  // Relations
+  area            Area?             @relation(fields: [areaId], references: [id])
+  maintenanceLogs MaintenanceLog[]
+  inspections     EquipmentInspection[]
+
+  @@index([city])
+  @@index([status])
+  @@index([areaId])
+}
+
+model Area {
+  id          String      @id @default(uuid())
+  name        String      @unique
+  description String      @default("")
+  isActive    Boolean     @default(true)
+  city        City?       // Optional: area bisa specific untuk city tertentu
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  
+  // Relations
+  equipment   Equipment[]
+
+  @@index([isActive])
+  @@index([city])
+}
+
+model EquipmentInspection {
+  id          String    @id @default(uuid())
+  equipmentId String
+  equipment   Equipment @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
+  inspector   String
+  condition   String    // Overall condition assessment
+  notes       String
+  issues      String[]  // Array of issues found
+  date        DateTime  @default(now())
+  createdAt   DateTime  @default(now())
+
+  @@index([equipmentId])
+  @@index([date])
+}
+
+model EventBrief {
+  id                   String       @id @default(uuid())
+  artist               String
+  genre                String       @default("")
+  setTimes             String       @default("")
+  stagePlotLink        String?
+  inputListLink        String?
+  
+  // Legacy fields (kept for backward compatibility)
+  monitorNeeds         String       @default("")
+  ljCueNotes           String       @default("")
+  vjContentChecklist   String       @default("")
+  
+  // New renamed and additional fields
+  audioOrder           String       @default("")
+  specialLightingOrder String       @default("")
+  visualOrder          String       @default("")
+  timecodeRouting      String       @default("")
+  brandMoment          String       @default("")
+  liveSetRecording     String       @default("")
+  sfxNotes             String       @default("")
+  
+  briefStatus          BriefStatus  @default(Draft)
+  riskLevel            RiskLevel    @default(Low)
+  city                 City
+  date                 DateTime
+  createdAt            DateTime     @default(now())
+  updatedAt            DateTime     @updatedAt
+
+  @@index([city])
+  @@index([date])
+}
+
+model CrewMember {
+  id              String           @id @default(uuid())
+  name            String
+  role            String
+  shift           ShiftType
+  assigned        Boolean          @default(false)
+  city            City
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  
+  // Relations
+  maintenanceLogs MaintenanceLog[]
+
+  @@index([city])
+  @@index([shift])
+}
+
+model MaintenanceLog {
+  id           String            @id @default(uuid())
+  equipmentId  String?
+  equipment    Equipment?        @relation(fields: [equipmentId], references: [id], onDelete: SetNull)
+  type         MaintenanceType
+  issue        String
+  status       MaintenanceStatus @default(Scheduled)
+  mttr         Float?
+  cost         Float
+  parts        String[]
+  date         DateTime
+  technicianId String?
+  technician   CrewMember?       @relation(fields: [technicianId], references: [id], onDelete: SetNull)
+  notes        String            @default("")
+  photo        String            @default("")
+  city         City
+  
+  // Supplier relation (for external maintenance vendors)
+  supplierId   String?
+  supplier     Supplier?         @relation(fields: [supplierId], references: [id], onDelete: SetNull)
+  
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+
+  @@index([city])
+  @@index([status])
+  @@index([equipmentId])
+  @@index([technicianId])
+  @@index([supplierId])
+}
+
+model Incident {
+  id          String       @id @default(uuid())
+  type        IncidentType
+  description String
+  rootCause   String
+  prevention  String
+  impact      String
+  date        DateTime
+  city        City
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  @@index([city])
+  @@index([date])
+}
+
+model Proposal {
+  id                 String          @id @default(uuid())
+  title              String
+  type               ProposalType
+  urgency            ProposalUrgency
+  estimate           Float
+  vendor             String          @default("") // Keep for backward compatibility
+  status             ProposalStatus  @default(Pending)
+  targetDate         DateTime?
+  owner              String
+  nextAction         String          @default("")
+  quotesCount        Int             @default(0)
+  quotesPdfs         String[]        @default([])
+  description        String          @default("")
+  estimateApproved   Boolean         @default(false)
+  estimateApprovedBy String?
+  city               City
+  
+  // Supplier relation
+  supplierId         String?
+  supplier           Supplier?       @relation(fields: [supplierId], references: [id], onDelete: SetNull)
+  
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
+
+  @@index([city])
+  @@index([status])
+  @@index([supplierId])
+}
+
+model RndProject {
+  id               String    @id @default(uuid())
+  title            String
+  description      String
+  phase            RndPhase  @default(Idea)
+  status           RndStatus @default(Active)
+  progress         Int       @default(0)
+  risks            String[]
+  dependencies     String[]
+  lead             String
+  targetDate       DateTime?
+  actualLiveDate   DateTime?
+  budget           Float
+  actualCost       Float     @default(0)
+  milestones       Json      @default("[]")
+  notes            String    @default("")
+  city             City
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  @@index([city])
+  @@index([phase])
+  @@index([status])
+}
+
+model Consumable {
+  id            String    @id @default(uuid())
+  name          String
+  category      String
+  description   String?
+  currentStock  Float    @default(0)
+  minStock      Int      @default(0)
+  maxStock      Int?
+  reorderPoint  Int      @default(0)
+  reorderQty    Int      @default(0)
+  unit          String
+  unitCost      Float    @default(0)
+  location      String?
+  image         String?
+  city          City
+  
+  // Supplier relation
+  supplierId    String?
+  supplier      Supplier? @relation(fields: [supplierId], references: [id], onDelete: SetNull)
+  
+  // Relations
+  stockMovements StockMovement[]
+  purchaseOrderItems PurchaseOrderItem[]
+  
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([city])
+  @@index([currentStock])
+  @@index([category])
+  @@index([supplierId])
+
+}
+
+model Supplier {
+  id              String         @id @default(uuid())
+  name            String
+  code            String         @unique
+  contactPerson   String?
+  email           String?
+  phone           String?
+  address         String?
+  city            City
+  taxId           String?
+  paymentTerms    Int            @default(30) // days
+  rating          Float?         @default(0)
+  status          SupplierStatus @default(Active)
+  notes           String?
+  
+  // Relations
+  purchaseOrders  PurchaseOrder[]
+  consumables     Consumable[]
+  proposals       Proposal[]
+  maintenanceLogs MaintenanceLog[]
+  
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  @@index([city])
+  @@index([status])
+  @@index([code])
+}
+
+model PurchaseOrder {
+  id              String              @id @default(uuid())
+  orderNumber     String              @unique
+  supplier        Supplier            @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+  supplierId      String
+  orderDate       DateTime            @default(now())
+  expectedDate    DateTime?
+  receivedDate    DateTime?
+  status          PurchaseOrderStatus @default(Draft)
+  totalAmount     Float               @default(0)
+  notes           String?
+  city            City
+  
+  // Relations
+  items           PurchaseOrderItem[]
+  
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+
+  @@index([city])
+  @@index([supplierId])
+  @@index([status])
+  @@index([orderNumber])
+}
+
+model PurchaseOrderItem {
+  id              String        @id @default(uuid())
+  purchaseOrder   PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+  purchaseOrderId String
+  consumable      Consumable    @relation(fields: [consumableId], references: [id], onDelete: Cascade)
+  consumableId    String
+  quantity        Float
+  receivedQty     Float         @default(0)
+  unitPrice       Float
+  totalPrice      Float
+  
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@index([purchaseOrderId])
+  @@index([consumableId])
+}
+
+model StockMovement {
+  id              String            @id @default(uuid())
+  consumable      Consumable        @relation(fields: [consumableId], references: [id], onDelete: Cascade)
+  consumableId    String
+  type            StockMovementType
+  quantity        Float
+  balanceBefore   Float
+  balanceAfter    Float
+  unitCost        Float?
+  totalCost       Float?
+  reference       String?           // PO number, event name, etc
+  notes           String?
+  performedBy     String?
+  city            City
+  
+  createdAt       DateTime          @default(now())
+
+  @@index([consumableId])
+  @@index([city])
+  @@index([type])
+  @@index([createdAt])
+}
+
+model Alert {
+  id           String    @id @default(uuid())
+  type         AlertType
+  title        String
+  message      String
+  timestamp    DateTime  @default(now())
+  acknowledged Boolean   @default(false)
+  city         City
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@index([city])
+  @@index([acknowledged])
+}
+
+model KPIMetrics {
+  id                         String   @id @default(uuid())
+  city                       City     @unique
+  nightsOpen                 Int
+  equipmentUptimePercentage  Float
+  issuesRaised               Int
+  issuesResolved             Int
+  powerIncidents             Int
+  weekYear                   Int
+  weekNumber                 Int
+  createdAt                  DateTime @default(now())
+  updatedAt                  DateTime @updatedAt
+
+  @@index([city])
+  @@index([weekYear, weekNumber])
+}
+
+enum UserRole {
+  admin
+  manager
+  operator
+}
+
+enum NotificationType {
+  CRITICAL
+  WARNING
+  INFO
+  SUCCESS
+}
+
+enum NotificationCategory {
+  EQUIPMENT
+  MAINTENANCE
+  INVENTORY
+  EVENT
+  SYSTEM
+  APPROVAL
+}
+
+model User {
+  id                String              @id @default(uuid())
+  email             String              @unique
+  password          String              // bcrypt hashed
+  name              String
+  role              UserRole            @default(operator)
+  cities            City[]              // Cities this user can access
+  isActive          Boolean             @default(true)
+  lastLogin         DateTime?
+  refreshToken      String?             // For JWT refresh
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  notifications     Notification[]
+  pushSubscriptions PushSubscription[]
+
+  @@index([email])
+  @@index([role])
+}
+
+model PushSubscription {
+  id            String   @id @default(uuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  endpoint      String   @unique
+  p256dh        String   // Public key for encryption
+  auth          String   // Auth secret for encryption
+  userAgent     String?  // Browser/device info
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([userId])
+  @@index([endpoint])
+}
+
+model Notification {
+  id          String               @id @default(uuid())
+  userId      String
+  user        User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type        NotificationType
+  category    NotificationCategory
+  title       String
+  message     String
+  data        Json?                // Additional metadata
+  city        City?
+  read        Boolean              @default(false)
+  readAt      DateTime?
+  actionUrl   String?              // URL to navigate when clicked
+  createdAt   DateTime             @default(now())
+
+  @@index([userId])
+  @@index([read])
+  @@index([createdAt])
+  @@index([city])
+}
+
+// Permission System - Dynamic RBAC
+model Permission {
+  id              String           @id @default(uuid())
+  name            String           @unique // e.g., "view:equipment"
+  displayName     String           // e.g., "View Equipment"
+  description     String?
+  category        String           // e.g., "Equipment Management"
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  rolePermissions RolePermission[]
+
+  @@index([category])
+}
+
+model RolePermission {
+  id           String     @id @default(uuid())
+  role         UserRole
+  permissionId String
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+  granted      Boolean    @default(true)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  @@unique([role, permissionId])
+  @@index([role])
+  @@index([permissionId])
+}

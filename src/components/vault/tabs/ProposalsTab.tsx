@@ -5,35 +5,98 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
 import { useVaultStore } from "@/store/vaultStore";
 import { useToast } from "@/hooks/use-toast";
-import { DollarSign, TrendingUp, Clock, CheckCircle, FileText, Edit3, Trash2 } from "lucide-react";
-import { useState } from "react";
+import { DollarSign, TrendingUp, Clock, CheckCircle, FileText, Edit3, Trash2, Loader2, Plus, AlertTriangle, ThumbsUp, ShoppingCart, Rocket, Upload, Eye, Calendar as CalendarIcon, XCircle, Download, X } from "lucide-react";
+import { useState, useEffect } from "react";
+import { api } from "@/lib/api";
+import { usePermission } from "@/lib/permissions";
+import { format } from "date-fns";
 
 export function ProposalsTab() {
-  const { selectedCity, proposals, addProposal, updateProposal, deleteProposal, crewMembers } = useVaultStore();
+  const { selectedCity } = useVaultStore();
   const { toast } = useToast();
+  const canView = usePermission('view:proposals');
+  const canEdit = usePermission('edit:proposals');
+  const canApprove = usePermission('approve:proposals');
   
-  const cityProposals = proposals.filter(proposal => proposal.city === selectedCity);
-  const cityOwners = crewMembers.filter(member => member.city === selectedCity);
+  const [proposals, setProposals] = useState<any[]>([]);
+  const [crewMembers, setCrewMembers] = useState<any[]>([]);
+  const [suppliers, setSuppliers] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   
   const [isNewProposalOpen, setIsNewProposalOpen] = useState(false);
   const [editingProposal, setEditingProposal] = useState<any>(null);
+  const [viewingQuotes, setViewingQuotes] = useState<any>(null);
+  const [deletingProposal, setDeletingProposal] = useState<any>(null);
   
   const [newProposal, setNewProposal] = useState({
     title: '',
     type: 'CapEx' as const,
     urgency: 'Medium' as const,
     estimate: 0,
-    roi: '',
     vendor: '',
-    status: 'Draft' as const,
-    targetWeek: '',
+    supplierId: '',
+    status: 'Pending' as const,
+    targetDate: null as Date | null,
     owner: '',
     nextAction: '',
-    quotes: 0
+    quotesCount: 0,
+    quotesPdfs: [] as string[],
+    description: '',
+    estimateApproved: false,
+    estimateApprovedBy: null as string | null
   });
+
+  // Load data from API
+  useEffect(() => {
+    loadProposals();
+    loadCrewMembers();
+    loadSuppliers();
+  }, [selectedCity]);
+
+  const loadProposals = async () => {
+    if (!canView) {
+      setLoading(false);
+      return;
+    }
+    
+    try {
+      setLoading(true);
+      const data = await api.proposals.getAll(selectedCity);
+      setProposals(data);
+    } catch (error: any) {
+      console.error('Failed to load proposals:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to load proposals",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadCrewMembers = async () => {
+    try {
+      const data = await api.crew.getAll(selectedCity);
+      setCrewMembers(data);
+    } catch (error: any) {
+      console.error('Failed to load crew members:', error);
+    }
+  };
+
+  const loadSuppliers = async () => {
+    try {
+      const data = await api.suppliers.getAll(selectedCity);
+      setSuppliers(data);
+    } catch (error: any) {
+      console.error('Failed to load suppliers:', error);
+    }
+  };
 
   const getUrgencyVariant = (urgency: string) => {
     switch (urgency) {
@@ -67,6 +130,29 @@ export function ProposalsTab() {
     }
   };
 
+  const handleApproveEstimate = async (proposalId: string) => {
+    if (!canApprove) {
+      toast({ title: "Error", description: "You don't have permission to approve estimates", variant: "destructive" });
+      return;
+    }
+
+    try {
+      await api.proposals.update(proposalId, {
+        estimateApproved: true,
+        estimateApprovedBy: 'admin' // Should be actual admin user ID in real implementation
+      });
+      
+      toast({ title: "Success", description: "Estimate approved successfully" });
+      loadProposals();
+    } catch (error: any) {
+      toast({ 
+        title: "Error", 
+        description: error.message || "Failed to approve estimate", 
+        variant: "destructive" 
+      });
+    }
+  };
+
   const formatCurrency = (amount: number) => {
     if (amount >= 1000000) {
       return `${(amount / 1000000).toFixed(1)}M IDR`;
@@ -75,58 +161,281 @@ export function ProposalsTab() {
   };
 
   const getApprovalLevel = (amount: number) => {
-    return amount > 100000000 ? "CEO Approval" : "Tech Director";
+    // Threshold: 25 Million IDR
+    return amount > 25000000 ? "CEO Approval Required" : "Technical Director Approval";
   };
 
-  const handleCreateProposal = () => {
+  const getApprovalVariant = (amount: number) => {
+    // Green for Tech Director (≤25M), Yellow/Warning for CEO (>25M)
+    return amount > 25000000 ? "secondary" : "default";
+  };
+
+  const handleCreateProposal = async () => {
+    if (!canEdit) {
+      toast({ title: "Error", description: "You don't have permission to create proposals", variant: "destructive" });
+      return;
+    }
+    
     if (!newProposal.title || !newProposal.owner) {
       toast({ title: "Error", description: "Title and owner are required", variant: "destructive" });
       return;
     }
     
-    addProposal({ ...newProposal, city: selectedCity });
-    setNewProposal({
-      title: '', type: 'CapEx', urgency: 'Medium', estimate: 0, roi: '',
-      vendor: '', status: 'Draft', targetWeek: '', owner: '', nextAction: '', quotes: 0
+    try {
+      const { targetDate, ...rest } = newProposal;
+      const proposalData = {
+        ...rest,
+        targetDate: targetDate ? targetDate.toISOString() : null,
+        supplierId: newProposal.supplierId || null,
+        city: selectedCity,
+        quotesCount: newProposal.quotesPdfs.length
+      };
+      
+      await api.proposals.create(proposalData);
+      
+      setNewProposal({
+        title: '', type: 'CapEx', urgency: 'Medium', estimate: 0,
+        vendor: '', supplierId: '', status: 'Pending', targetDate: null, owner: '', nextAction: '', 
+        quotesCount: 0, quotesPdfs: [], description: '', estimateApproved: false, estimateApprovedBy: null
+      });
+      setIsNewProposalOpen(false);
+      
+      toast({ title: "Success", description: "Proposal created successfully" });
+      loadProposals();
+    } catch (error: any) {
+      toast({ 
+        title: "Error", 
+        description: error.message || "Failed to create proposal", 
+        variant: "destructive" 
+      });
+    }
+  };
+
+  const handlePdfUpload = (e: React.ChangeEvent<HTMLInputElement>, isEditing = false) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    
+    const currentProposal = isEditing ? editingProposal : newProposal;
+    const currentPdfs = currentProposal.quotesPdfs || [];
+    
+    // Check if adding these files would exceed limit
+    if (currentPdfs.length + files.length > 5) {
+      toast({
+        title: "Error",
+        description: `Maximum 5 PDF files allowed. You can add ${5 - currentPdfs.length} more files.`,
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    const newPdfs: string[] = [];
+    let processed = 0;
+    
+    Array.from(files).forEach((file, index) => {
+      if (file.type !== 'application/pdf') {
+        toast({
+          title: "Error",
+          description: `File ${file.name} is not a PDF`,
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      // Max 5MB per file
+      if (file.size > 5 * 1024 * 1024) {
+        toast({
+          title: "Error",
+          description: `File ${file.name} size must be less than 5MB`,
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        newPdfs.push(reader.result as string);
+        processed++;
+        
+        if (processed === files.length) {
+          const updatedPdfs = [...currentPdfs, ...newPdfs];
+          if (isEditing && editingProposal) {
+            setEditingProposal({ ...editingProposal, quotesPdfs: updatedPdfs });
+          } else {
+            setNewProposal({ ...newProposal, quotesPdfs: updatedPdfs });
+          }
+          
+          toast({
+            title: "Success",
+            description: `${newPdfs.length} PDF file(s) uploaded successfully`,
+          });
+        }
+      };
+      reader.readAsDataURL(file);
     });
-    setIsNewProposalOpen(false);
-    toast({ title: "Success", description: "Proposal created successfully" });
   };
 
-  const handleUpdateProposal = (id: string, updates: any) => {
-    updateProposal(id, updates);
-    toast({ title: "Success", description: "Proposal updated" });
+  const handleUpdateProposal = async (id: string, updates: any) => {
+    if (!canEdit) {
+      toast({ title: "Error", description: "You don't have permission to update proposals", variant: "destructive" });
+      return;
+    }
+    
+    try {
+      await api.proposals.update(id, updates);
+      toast({ title: "Success", description: "Proposal updated" });
+      loadProposals();
+    } catch (error: any) {
+      toast({ 
+        title: "Error", 
+        description: error.message || "Failed to update proposal", 
+        variant: "destructive" 
+      });
+    }
   };
 
-  const handleDeleteProposal = (id: string, title: string) => {
-    deleteProposal(id);
-    toast({ title: "Success", description: `Proposal "${title}" deleted` });
+  const handleApproveProposal = async (proposal: any) => {
+    if (!canApprove) {
+      toast({ title: "Error", description: "You don't have permission to approve proposals", variant: "destructive" });
+      return;
+    }
+    
+    try {
+      await api.proposals.update(proposal.id, { status: 'Approved' });
+      toast({ title: "Success", description: `Proposal "${proposal.title}" approved` });
+      loadProposals();
+    } catch (error: any) {
+      toast({ 
+        title: "Error", 
+        description: error.message || "Failed to approve proposal", 
+        variant: "destructive" 
+      });
+    }
+  };
+
+  const handleDeleteProposal = async (id: string, title: string) => {
+    if (!canEdit) {
+      toast({ title: "Error", description: "You don't have permission to delete proposals", variant: "destructive" });
+      return;
+    }
+    
+    try {
+      await api.proposals.delete(id);
+      toast({ title: "Success", description: `Proposal "${title}" deleted` });
+      setDeletingProposal(null);
+      loadProposals();
+    } catch (error: any) {
+      toast({ 
+        title: "Error", 
+        description: error.message || "Failed to delete proposal", 
+        variant: "destructive" 
+      });
+    }
   };
 
   const handleEditProposal = (proposal: any) => {
+    if (!canEdit) {
+      toast({ title: "Error", description: "You don't have permission to edit proposals", variant: "destructive" });
+      return;
+    }
     setEditingProposal({ ...proposal });
   };
 
-  const handleSaveEdit = () => {
-    if (!editingProposal) return;
+  const handleSaveEdit = async () => {
+    if (!editingProposal || !canEdit) return;
     
-    updateProposal(editingProposal.id, editingProposal);
-    setEditingProposal(null);
-    toast({ title: "Success", description: "Proposal updated successfully" });
+    try {
+      // Extract only the fields that should be updated (exclude relations like 'supplier')
+      const { id, supplier, createdAt, updatedAt, ...updateFields } = editingProposal;
+      
+      // Convert targetDate if it exists and is a Date object
+      const proposalData = {
+        ...updateFields,
+        targetDate: editingProposal.targetDate && typeof editingProposal.targetDate !== 'string'
+          ? new Date(editingProposal.targetDate).toISOString()
+          : editingProposal.targetDate,
+        supplierId: editingProposal.supplierId || null
+      };
+      
+      await api.proposals.update(editingProposal.id, proposalData);
+      setEditingProposal(null);
+      toast({ title: "Success", description: "Proposal updated successfully" });
+      loadProposals();
+    } catch (error: any) {
+      toast({ 
+        title: "Error", 
+        description: error.message || "Failed to update proposal", 
+        variant: "destructive" 
+      });
+    }
   };
+
+  const handleStatusChange = async (proposal: any, newStatus: string) => {
+    if (!canEdit && newStatus !== proposal.status) {
+      toast({ 
+        title: "Error", 
+        description: "You don't have permission to change proposal status", 
+        variant: "destructive" 
+      });
+      return;
+    }
+
+    try {
+      await api.proposals.update(proposal.id, { status: newStatus });
+      toast({ title: "Success", description: "Proposal status updated" });
+      loadProposals();
+    } catch (error: any) {
+      toast({ 
+        title: "Error", 
+        description: error.message || "Failed to update proposal status", 
+        variant: "destructive" 
+      });
+    }
+  };
+
+  const getStatusColor = (status: string) => {
+    switch(status) {
+      case 'Pending': return 'bg-yellow-500/20 text-yellow-500 border-yellow-500/50';
+      case 'Approved': return 'bg-green-500/20 text-green-500 border-green-500/50';
+      case 'Rejected': return 'bg-red-500/20 text-red-500 border-red-500/50';
+      case 'Completed': return 'bg-blue-500/20 text-blue-500 border-blue-500/50';
+      default: return 'bg-muted text-muted-foreground';
+    }
+  };
+
+  // Calculate summary metrics
+  const summaryMetrics = {
+    totalPending: proposals
+      .filter(p => p.status === 'Pending')
+      .reduce((sum, p) => sum + p.estimate, 0),
+    approvedCount: proposals.filter(p => p.status === 'Approved').length,
+    completedCount: proposals.filter(p => p.status === 'Completed').length,
+    rejectedCount: proposals.filter(p => p.status === 'Rejected').length
+  };
+
+  if (!canView) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <div className="text-center space-y-2">
+          <AlertTriangle className="h-12 w-12 mx-auto text-destructive" />
+          <p className="text-muted-foreground">You don't have permission to view proposals</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold">Proposals (CapEx/OpEx)</h3>
-        <Dialog open={isNewProposalOpen} onOpenChange={setIsNewProposalOpen}>
-          <DialogTrigger asChild>
-            <Button variant="outline">
-              <FileText className="h-4 w-4 mr-2" />
-              New Proposal
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-2xl">
+        <h3 className="text-lg font-semibold">Proposals (CapEx/OpEx) - {selectedCity.charAt(0).toUpperCase() + selectedCity.slice(1)}</h3>
+        {canEdit && (
+          <Dialog open={isNewProposalOpen} onOpenChange={setIsNewProposalOpen}>
+            <DialogTrigger asChild>
+              <Button variant="default">
+                <Plus className="h-4 w-4 mr-2" />
+                New Proposal
+              </Button>
+            </DialogTrigger>
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Create New Proposal</DialogTitle>
             </DialogHeader>
@@ -138,6 +447,16 @@ export function ProposalsTab() {
                   value={newProposal.title}
                   onChange={(e) => setNewProposal({...newProposal, title: e.target.value})}
                   placeholder="Proposal title"
+                />
+              </div>
+              <div className="col-span-2 space-y-2">
+                <Label htmlFor="description">Description</Label>
+                <Textarea
+                  id="description"
+                  value={newProposal.description}
+                  onChange={(e) => setNewProposal({...newProposal, description: e.target.value})}
+                  placeholder="Detailed description of the proposal"
+                  rows={3}
                 />
               </div>
               <div className="space-y-2">
@@ -182,7 +501,7 @@ export function ProposalsTab() {
                     <SelectValue placeholder="Select owner" />
                   </SelectTrigger>
                   <SelectContent>
-                    {cityOwners.map((owner) => (
+                    {crewMembers.map((owner) => (
                       <SelectItem key={owner.id} value={owner.name}>{owner.name}</SelectItem>
                     ))}
                   </SelectContent>
@@ -198,22 +517,44 @@ export function ProposalsTab() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="targetWeek">Target Week</Label>
-                <Input
-                  id="targetWeek"
-                  value={newProposal.targetWeek}
-                  onChange={(e) => setNewProposal({...newProposal, targetWeek: e.target.value})}
-                  placeholder="e.g., Week 37, 2025"
-                />
+                <Label htmlFor="supplier">Supplier (Optional)</Label>
+                <Select
+                  value={newProposal.supplierId || undefined}
+                  onValueChange={(value) => setNewProposal({...newProposal, supplierId: value})}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select supplier (optional)..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {suppliers.map(supplier => (
+                      <SelectItem key={supplier.id} value={supplier.id}>
+                        {supplier.name} {supplier.code ? `(${supplier.code})` : ''}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
-              <div className="col-span-2 space-y-2">
-                <Label htmlFor="roi">ROI Description</Label>
-                <Textarea
-                  id="roi"
-                  value={newProposal.roi}
-                  onChange={(e) => setNewProposal({...newProposal, roi: e.target.value})}
-                  placeholder="Return on investment benefits"
-                />
+              <div className="space-y-2">
+                <Label>Target Date</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className="w-full justify-start text-left font-normal"
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {newProposal.targetDate ? format(newProposal.targetDate, "PPP") : "Pick a date"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0">
+                    <Calendar
+                      mode="single"
+                      selected={newProposal.targetDate || undefined}
+                      onSelect={(date) => setNewProposal({...newProposal, targetDate: date || null})}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
               </div>
               <div className="col-span-2 space-y-2">
                 <Label htmlFor="nextAction">Next Action</Label>
@@ -224,6 +565,54 @@ export function ProposalsTab() {
                   placeholder="Next required action"
                 />
               </div>
+              <div className="col-span-2 space-y-2">
+                <Label>Upload Quotes PDF (Max 5 files)</Label>
+                <div className="flex flex-wrap gap-2 items-center">
+                  <Input
+                    type="file"
+                    accept="application/pdf"
+                    multiple
+                    onChange={(e) => handlePdfUpload(e, false)}
+                    className="cursor-pointer"
+                  />
+                  {newProposal.quotesPdfs && newProposal.quotesPdfs.length > 0 && (
+                    <Badge variant="outline" className="text-xs">
+                      {newProposal.quotesPdfs.length}/5 PDFs uploaded
+                    </Badge>
+                  )}
+                </div>
+                {newProposal.quotesPdfs && newProposal.quotesPdfs.length > 0 && (
+                  <div className="space-y-2">
+                    <div className="flex flex-wrap gap-2">
+                      {newProposal.quotesPdfs.map((pdf, index) => (
+                        <div key={index} className="flex items-center gap-1 bg-muted/50 rounded px-2 py-1">
+                          <FileText className="h-3 w-3" />
+                          <span className="text-xs">Quote {index + 1}</span>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-4 w-4 p-0"
+                            onClick={() => {
+                              const updated = newProposal.quotesPdfs.filter((_, i) => i !== index);
+                              setNewProposal({...newProposal, quotesPdfs: updated});
+                            }}
+                          >
+                            <X className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setNewProposal({...newProposal, quotesPdfs: []})}
+                    >
+                      <Trash2 className="h-3 w-3 mr-1" />
+                      Clear All PDFs
+                    </Button>
+                  </div>
+                )}
+              </div>
             </div>
             <div className="flex gap-2 justify-end mt-4">
               <Button variant="outline" onClick={() => setIsNewProposalOpen(false)}>Cancel</Button>
@@ -231,6 +620,7 @@ export function ProposalsTab() {
             </div>
           </DialogContent>
         </Dialog>
+        )}
       </div>
 
       {/* Summary Cards */}
@@ -238,10 +628,10 @@ export function ProposalsTab() {
         <Card className="bg-gradient-card border-border/50">
           <CardContent className="p-4">
             <div className="flex items-center gap-2">
-              <DollarSign className="h-4 w-4 text-primary" />
+              <DollarSign className="h-4 w-4 text-yellow-500" />
               <div>
                 <div className="text-xs text-muted-foreground">Total Pending</div>
-                <div className="text-lg font-bold">279M IDR</div>
+                <div className="text-lg font-bold">{formatCurrency(summaryMetrics.totalPending)}</div>
               </div>
             </div>
           </CardContent>
@@ -250,10 +640,10 @@ export function ProposalsTab() {
         <Card className="bg-gradient-card border-border/50">
           <CardContent className="p-4">
             <div className="flex items-center gap-2">
-              <TrendingUp className="h-4 w-4 text-success" />
+              <CheckCircle className="h-4 w-4 text-green-500" />
               <div>
                 <div className="text-xs text-muted-foreground">Approved</div>
-                <div className="text-lg font-bold">2 Items</div>
+                <div className="text-lg font-bold">{summaryMetrics.approvedCount} Items</div>
               </div>
             </div>
           </CardContent>
@@ -262,10 +652,10 @@ export function ProposalsTab() {
         <Card className="bg-gradient-card border-border/50">
           <CardContent className="p-4">
             <div className="flex items-center gap-2">
-              <Clock className="h-4 w-4 text-warning" />
+              <CheckCircle className="h-4 w-4 text-blue-500" />
               <div>
-                <div className="text-xs text-muted-foreground">In Review</div>
-                <div className="text-lg font-bold">1 Item</div>
+                <div className="text-xs text-muted-foreground">Completed</div>
+                <div className="text-lg font-bold">{summaryMetrics.completedCount} Items</div>
               </div>
             </div>
           </CardContent>
@@ -274,10 +664,10 @@ export function ProposalsTab() {
         <Card className="bg-gradient-card border-border/50">
           <CardContent className="p-4">
             <div className="flex items-center gap-2">
-              <FileText className="h-4 w-4 text-muted-foreground" />
+              <XCircle className="h-4 w-4 text-red-500" />
               <div>
-                <div className="text-xs text-muted-foreground">Draft</div>
-                <div className="text-lg font-bold">1 Item</div>
+                <div className="text-xs text-muted-foreground">Rejected</div>
+                <div className="text-lg font-bold">{summaryMetrics.rejectedCount} Items</div>
               </div>
             </div>
           </CardContent>
@@ -285,8 +675,28 @@ export function ProposalsTab() {
       </div>
 
       {/* Proposals List */}
-      <div className="space-y-4">
-        {cityProposals.map((proposal) => (
+      {loading ? (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      ) : proposals.length === 0 ? (
+        <Card className="bg-gradient-card border-border/50">
+          <CardContent className="py-12">
+            <div className="text-center space-y-2">
+              <FileText className="h-12 w-12 mx-auto text-muted-foreground" />
+              <p className="text-muted-foreground">No proposals found for {selectedCity}</p>
+              {canEdit && (
+                <Button variant="outline" onClick={() => setIsNewProposalOpen(true)}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Create First Proposal
+                </Button>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="space-y-4">
+        {proposals.map((proposal) => (
           <Card key={proposal.id} className="bg-gradient-card border-border/50">
             <CardHeader>
               <div className="flex items-center justify-between">
@@ -299,10 +709,21 @@ export function ProposalsTab() {
                   <Badge variant={getUrgencyVariant(proposal.urgency)}>
                     {proposal.urgency}
                   </Badge>
-                  <Badge variant={getStatusVariant(proposal.status)}>
-                    {getStatusIcon(proposal.status)}
-                    {proposal.status}
-                  </Badge>
+                  <Select 
+                    value={proposal.status} 
+                    onValueChange={(value) => handleStatusChange(proposal, value)}
+                    disabled={!canEdit}
+                  >
+                    <SelectTrigger className={`w-[140px] ${getStatusColor(proposal.status)}`}>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Pending">⏳ Pending</SelectItem>
+                      <SelectItem value="Approved">✅ Approved</SelectItem>
+                      <SelectItem value="Rejected">❌ Rejected</SelectItem>
+                      <SelectItem value="Completed">🎉 Completed</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
             </CardHeader>
@@ -310,32 +731,51 @@ export function ProposalsTab() {
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <div className="text-sm">
-                    <span className="text-muted-foreground">Estimate:</span>
-                    <span className="font-bold ml-2">{formatCurrency(proposal.estimate)}</span>
-                    <Badge variant="outline" className="ml-2 text-xs">
-                      {getApprovalLevel(proposal.estimate)}
-                    </Badge>
-                  </div>
-                  
-                  <div className="text-sm">
-                    <span className="text-muted-foreground">ROI:</span>
-                    <span className="ml-2">{proposal.roi}</span>
+                  <div className="text-sm flex items-center justify-between">
+                    <div>
+                      <span className="text-muted-foreground">Estimate:</span>
+                      <span className="font-bold ml-2">{formatCurrency(proposal.estimate)}</span>
+                      <Badge variant={getApprovalVariant(proposal.estimate)} className="ml-2 text-xs">
+                        {getApprovalLevel(proposal.estimate)}
+                      </Badge>
+                    </div>
+                    {canApprove && !proposal.estimateApproved && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleApproveEstimate(proposal.id)}
+                        className="text-xs"
+                      >
+                        <CheckCircle className="h-3 w-3 mr-1" />
+                        Approve Estimate
+                      </Button>
+                    )}
+                    {proposal.estimateApproved && (
+                      <Badge variant="default" className="text-xs">
+                        <CheckCircle className="h-3 w-3 mr-1" />
+                        Estimate Approved
+                      </Badge>
+                    )}
                   </div>
                   
                   <div className="text-sm">
                     <span className="text-muted-foreground">Vendor:</span>
                     <span className="ml-2">{proposal.vendor}</span>
-                    <Badge variant="outline" className="ml-2 text-xs">
-                      {proposal.quotes} quotes
+                  </div>
+                  
+                  <div className="text-sm">
+                    <Badge variant="outline" className="text-xs">
+                      {proposal.quotesCount} quotes
                     </Badge>
                   </div>
                 </div>
                 
                 <div className="space-y-2">
                   <div className="text-sm">
-                    <span className="text-muted-foreground">Target Week:</span>
-                    <span className="ml-2">{proposal.targetWeek}</span>
+                    <span className="text-muted-foreground">Target Date:</span>
+                    <span className="ml-2">
+                      {proposal.targetDate ? format(new Date(proposal.targetDate), "PPP") : 'Not set'}
+                    </span>
                   </div>
                   
                   <div className="text-sm">
@@ -350,48 +790,42 @@ export function ProposalsTab() {
                 </div>
               </div>
               
-              <div className="flex gap-2 pt-4 border-t border-border/30">
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => {
-                    const nextStatus = proposal.status === 'Draft' ? 'Review' : 
-                                     proposal.status === 'Review' ? 'Approved' : 
-                                     proposal.status === 'Approved' ? 'Ordered' : 'Live';
-                    handleUpdateProposal(proposal.id, { status: nextStatus });
-                  }}
-                >
-                  {proposal.status === 'Draft' && 'Submit for Review'}
-                  {proposal.status === 'Review' && 'Approve'}
-                  {proposal.status === 'Approved' && 'Mark Ordered'}
-                  {proposal.status === 'Ordered' && 'Mark Live'}
-                  {proposal.status === 'Live' && 'Completed'}
-                </Button>
-                <Button variant="secondary" size="sm" onClick={() => handleEditProposal(proposal)}>
-                  <Edit3 className="h-3 w-3 mr-1" />
-                  Edit
-                </Button>
-                <Button variant="outline" size="sm">
-                  View Quotes
-                </Button>
-                <Button 
-                  variant="destructive" 
-                  size="sm" 
-                  onClick={() => handleDeleteProposal(proposal.id, proposal.title)}
-                >
-                  <Trash2 className="h-3 w-3 mr-1" />
-                  Delete
-                </Button>
+              <div className="flex gap-2 pt-4 border-t border-border/30 flex-wrap">
+                {canEdit && (
+                  <>
+                    <Button variant="secondary" size="sm" onClick={() => handleEditProposal(proposal)}>
+                      <Edit3 className="h-3 w-3 mr-1" />
+                      Edit
+                    </Button>
+                    {proposal.quotesPdfs && proposal.quotesPdfs.length > 0 && (
+                      <Button variant="outline" size="sm" onClick={() => setViewingQuotes(proposal)}>
+                        <Eye className="h-3 w-3 mr-1" />
+                        View Quotes ({proposal.quotesPdfs.length})
+                      </Button>
+                    )}
+                    <Button 
+                      variant="destructive" 
+                      size="sm" 
+                      onClick={() => setDeletingProposal(proposal)}
+                      disabled={proposal.status === 'Completed'}
+                      title={proposal.status === 'Completed' ? 'Cannot delete completed proposals' : 'Delete proposal'}
+                    >
+                      <Trash2 className="h-3 w-3 mr-1" />
+                      Delete
+                    </Button>
+                  </>
+                )}
               </div>
             </CardContent>
           </Card>
         ))}
-      </div>
+        </div>
+      )}
 
       {/* Edit Proposal Dialog */}
       {editingProposal && (
         <Dialog open={!!editingProposal} onOpenChange={() => setEditingProposal(null)}>
-          <DialogContent className="max-w-2xl">
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Edit Proposal - {editingProposal.title}</DialogTitle>
             </DialogHeader>
@@ -402,6 +836,16 @@ export function ProposalsTab() {
                   id="edit-title"
                   value={editingProposal.title}
                   onChange={(e) => setEditingProposal({...editingProposal, title: e.target.value})}
+                />
+              </div>
+              <div className="col-span-2 space-y-2">
+                <Label htmlFor="edit-description">Description</Label>
+                <Textarea
+                  id="edit-description"
+                  value={editingProposal.description}
+                  onChange={(e) => setEditingProposal({...editingProposal, description: e.target.value})}
+                  placeholder="Detailed description of the proposal"
+                  rows={3}
                 />
               </div>
               <div className="space-y-2">
@@ -447,29 +891,44 @@ export function ProposalsTab() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="edit-targetWeek">Target Week</Label>
-                <Input
-                  id="edit-targetWeek"
-                  value={editingProposal.targetWeek}
-                  onChange={(e) => setEditingProposal({...editingProposal, targetWeek: e.target.value})}
-                />
+                <Label htmlFor="edit-supplier">Supplier (Optional)</Label>
+                <Select
+                  value={editingProposal.supplierId || undefined}
+                  onValueChange={(value) => setEditingProposal({...editingProposal, supplierId: value})}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select supplier (optional)..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {suppliers.map(supplier => (
+                      <SelectItem key={supplier.id} value={supplier.id}>
+                        {supplier.name} {supplier.code ? `(${supplier.code})` : ''}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="edit-quotes">Quotes</Label>
-                <Input
-                  id="edit-quotes"
-                  type="number"
-                  value={editingProposal.quotes}
-                  onChange={(e) => setEditingProposal({...editingProposal, quotes: parseInt(e.target.value) || 0})}
-                />
-              </div>
-              <div className="col-span-2 space-y-2">
-                <Label htmlFor="edit-roi">ROI Description</Label>
-                <Textarea
-                  id="edit-roi"
-                  value={editingProposal.roi}
-                  onChange={(e) => setEditingProposal({...editingProposal, roi: e.target.value})}
-                />
+                <Label>Target Date</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className="w-full justify-start text-left font-normal"
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {editingProposal.targetDate ? format(new Date(editingProposal.targetDate), "PPP") : "Pick a date"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0">
+                    <Calendar
+                      mode="single"
+                      selected={editingProposal.targetDate ? new Date(editingProposal.targetDate) : undefined}
+                      onSelect={(date) => setEditingProposal({...editingProposal, targetDate: date ? date.toISOString() : ''})}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
               </div>
               <div className="col-span-2 space-y-2">
                 <Label htmlFor="edit-nextAction">Next Action</Label>
@@ -479,10 +938,168 @@ export function ProposalsTab() {
                   onChange={(e) => setEditingProposal({...editingProposal, nextAction: e.target.value})}
                 />
               </div>
+              <div className="col-span-2 space-y-2">
+                <Label>Upload Quotes PDF (Max 5 files)</Label>
+                <div className="flex flex-wrap gap-2 items-center">
+                  <Input
+                    type="file"
+                    accept="application/pdf"
+                    multiple
+                    onChange={(e) => handlePdfUpload(e, true)}
+                    className="cursor-pointer"
+                  />
+                  {editingProposal.quotesPdfs && editingProposal.quotesPdfs.length > 0 && (
+                    <Badge variant="outline" className="text-xs">
+                      {editingProposal.quotesPdfs.length}/5 PDFs uploaded
+                    </Badge>
+                  )}
+                </div>
+                {editingProposal.quotesPdfs && editingProposal.quotesPdfs.length > 0 && (
+                  <div className="space-y-2">
+                    <div className="flex flex-wrap gap-2">
+                      {editingProposal.quotesPdfs.map((pdf: string, index: number) => (
+                        <div key={index} className="flex items-center gap-1 bg-muted/50 rounded px-2 py-1">
+                          <FileText className="h-3 w-3" />
+                          <span className="text-xs">Quote {index + 1}</span>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-4 w-4 p-0"
+                            onClick={() => {
+                              const updated = editingProposal.quotesPdfs.filter((_: string, i: number) => i !== index);
+                              setEditingProposal({...editingProposal, quotesPdfs: updated});
+                            }}
+                          >
+                            <X className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setEditingProposal({...editingProposal, quotesPdfs: []})}
+                    >
+                      <Trash2 className="h-3 w-3 mr-1" />
+                      Clear All PDFs
+                    </Button>
+                  </div>
+                )}
+              </div>
             </div>
             <div className="flex gap-2 justify-end mt-4">
               <Button variant="outline" onClick={() => setEditingProposal(null)}>Cancel</Button>
               <Button onClick={handleSaveEdit}>Save Changes</Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* View Quotes Dialog */}
+      {viewingQuotes && (
+        <Dialog open={!!viewingQuotes} onOpenChange={() => setViewingQuotes(null)}>
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Quotes - {viewingQuotes.title}</DialogTitle>
+            </DialogHeader>
+            {viewingQuotes.quotesPdfs && viewingQuotes.quotesPdfs.length > 0 ? (
+              <div className="space-y-4">
+                <p className="text-sm text-muted-foreground">
+                  {viewingQuotes.quotesPdfs.length} PDF file(s) uploaded
+                </p>
+                <div className="grid gap-3 max-h-[60vh] overflow-y-auto">
+                  {viewingQuotes.quotesPdfs.map((pdf: string, index: number) => (
+                    <Card key={index} className="p-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <FileText className="h-8 w-8 text-blue-500" />
+                          <div>
+                            <p className="font-medium">Quote {index + 1}</p>
+                            <p className="text-sm text-muted-foreground">PDF Document</p>
+                          </div>
+                        </div>
+                        <div className="flex gap-2">
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => {
+                              // Open PDF in new window with proper viewer
+                              const newWindow = window.open('', '_blank');
+                              if (newWindow) {
+                                newWindow.document.write(`
+                                  <!DOCTYPE html>
+                                  <html>
+                                    <head>
+                                      <title>Quote ${index + 1}</title>
+                                      <style>
+                                        body { margin: 0; padding: 0; overflow: hidden; }
+                                        iframe { border: none; width: 100vw; height: 100vh; }
+                                      </style>
+                                    </head>
+                                    <body>
+                                      <iframe src="${pdf}" type="application/pdf"></iframe>
+                                    </body>
+                                  </html>
+                                `);
+                                newWindow.document.close();
+                              }
+                            }}
+                          >
+                            <Eye className="h-4 w-4 mr-1" />
+                            View
+                          </Button>
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => {
+                              // Create download link
+                              const link = document.createElement('a');
+                              link.href = pdf;
+                              link.download = `quote-${index + 1}.pdf`;
+                              link.click();
+                            }}
+                          >
+                            <Download className="h-4 w-4 mr-1" />
+                            Download
+                          </Button>
+                        </div>
+                      </div>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div className="flex items-center justify-center h-64 text-muted-foreground">
+                <FileText className="h-12 w-12 mr-4" />
+                <div>No quotes PDF uploaded for this proposal</div>
+              </div>
+            )}
+            <div className="flex justify-end mt-4">
+              <Button variant="outline" onClick={() => setViewingQuotes(null)}>Close</Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* Delete Confirmation Dialog */}
+      {deletingProposal && (
+        <Dialog open={!!deletingProposal} onOpenChange={() => setDeletingProposal(null)}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Delete Proposal</DialogTitle>
+              <DialogDescription>
+                Are you sure you want to delete "{deletingProposal.title}"? This action cannot be undone.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="flex gap-2 justify-end mt-4">
+              <Button variant="outline" onClick={() => setDeletingProposal(null)}>Cancel</Button>
+              <Button 
+                variant="destructive" 
+                onClick={() => handleDeleteProposal(deletingProposal.id, deletingProposal.title)}
+              >
+                <Trash2 className="h-3 w-3 mr-1" />
+                Delete
+              </Button>
             </div>
           </DialogContent>
         </Dialog>

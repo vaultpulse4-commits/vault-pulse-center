@@ -2,8 +2,7 @@ import { create } from 'zustand';
 
 export type City = 'jakarta' | 'bali';
 export type ShiftType = 'day' | 'night';
-export type EquipmentArea = 'FOH' | 'booth' | 'stage' | 'DJ pit' | 'LED wall' | 'dimmer room' | 'amp rack' | 'power';
-export type EquipmentStatus = 'Ready' | 'Degraded' | 'OOS' | 'In-Transit' | 'Spare';
+export type EquipmentStatus = 'Ready' | 'Degraded' | 'OOS' | 'In_Transit' | 'Spare';
 export type RiskLevel = 'Low' | 'Med' | 'High';
 export type BriefStatus = 'Draft' | 'Final';
 export type EventStatus = 'upcoming' | 'in-progress' | 'completed';
@@ -19,13 +18,20 @@ export interface KPIMetrics {
 export interface Equipment {
   id: string;
   name: string;
-  area: EquipmentArea;
+  areaId: string | null;
+  area?: {
+    id: string;
+    name: string;
+  };
   status: EquipmentStatus;
   lastInspection: string;
   nextDue: string;
   firmware: string;
-  hoursUsed: number;
+  photo: string | null;
+  description: string;
   city: City;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface EventBrief {
@@ -105,13 +111,21 @@ export interface Consumable {
   id: string;
   name: string;
   category: string;
+  description: string | null;
+  sku: string | null;
   currentStock: number;
-  weeklyUsage: number;
+  minStock: number;
+  maxStock: number | null;
   reorderPoint: number;
+  reorderQty: number;
   unit: string;
-  supplier: string;
-  lastOrdered: string;
+  unitCost: number;
+  location: string | null;
+  barcode: string | null;
+  image: string | null;
   city: City;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface CrewMember {
@@ -193,11 +207,11 @@ export const useVaultStore = create<VaultState>((set, get) => ({
   },
 
   equipment: [
-    { id: "1", name: "CDJ 3000 #1", area: "DJ pit", status: "Ready", lastInspection: "2025-08-25", nextDue: "2025-09-01", firmware: "v2.1.4", hoursUsed: 1247, city: "jakarta" },
-    { id: "2", name: "Void Nexus Speakers", area: "FOH", status: "Ready", lastInspection: "2025-08-24", nextDue: "2025-08-31", firmware: "v1.8.2", hoursUsed: 2156, city: "jakarta" },
-    { id: "3", name: "LED Wall Controller", area: "LED wall", status: "Degraded", lastInspection: "2025-08-23", nextDue: "2025-08-30", firmware: "v3.2.1", hoursUsed: 897, city: "jakarta" },
-    { id: "4", name: "Liquid Smoke Machine", area: "stage", status: "Ready", lastInspection: "2025-08-25", nextDue: "2025-09-02", firmware: "N/A", hoursUsed: 324, city: "bali" },
-    { id: "5", name: "Pioneer DJM-V10", area: "DJ pit", status: "Ready", lastInspection: "2025-08-24", nextDue: "2025-08-31", firmware: "v1.9.0", hoursUsed: 1564, city: "bali" },
+    { id: "1", name: "CDJ 3000 #1", areaId: null, status: "Ready", lastInspection: "2025-08-25", nextDue: "2025-09-01", firmware: "v2.1.4", photo: null, description: "", city: "jakarta", createdAt: "2025-08-25", updatedAt: "2025-08-25" },
+    { id: "2", name: "Void Nexus Speakers", areaId: null, status: "Ready", lastInspection: "2025-08-24", nextDue: "2025-08-31", firmware: "v1.8.2", photo: null, description: "", city: "jakarta", createdAt: "2025-08-24", updatedAt: "2025-08-24" },
+    { id: "3", name: "LED Wall Controller", areaId: null, status: "Degraded", lastInspection: "2025-08-23", nextDue: "2025-08-30", firmware: "v3.2.1", photo: null, description: "", city: "jakarta", createdAt: "2025-08-23", updatedAt: "2025-08-23" },
+    { id: "4", name: "Liquid Smoke Machine", areaId: null, status: "Ready", lastInspection: "2025-08-25", nextDue: "2025-09-02", firmware: "N/A", photo: null, description: "", city: "bali", createdAt: "2025-08-25", updatedAt: "2025-08-25" },
+    { id: "5", name: "Pioneer DJM-V10", areaId: null, status: "Ready", lastInspection: "2025-08-24", nextDue: "2025-08-31", firmware: "v1.9.0", photo: null, description: "", city: "bali", createdAt: "2025-08-24", updatedAt: "2025-08-24" },
   ],
 
   eventBriefs: [
@@ -308,10 +322,7 @@ export const useVaultStore = create<VaultState>((set, get) => ({
   ],
 
   consumables: [
-    { id: "1", name: "CO₂ Cartridges", category: "SFX", currentStock: 24, weeklyUsage: 8, reorderPoint: 12, unit: "cartridges", supplier: "Indonesia SFX Supply", lastOrdered: "2025-08-20", city: "jakarta" },
-    { id: "2", name: "Fog Fluid", category: "SFX", currentStock: 45, weeklyUsage: 12, reorderPoint: 20, unit: "liters", supplier: "Haze Pro Jakarta", lastOrdered: "2025-08-18", city: "jakarta" },
-    { id: "3", name: "Confetti", category: "SFX", currentStock: 8, weeklyUsage: 3, reorderPoint: 5, unit: "kg", supplier: "Party Supply Bali", lastOrdered: "2025-08-22", city: "bali" },
-    { id: "4", name: "XLR Cables", category: "Audio", currentStock: 32, weeklyUsage: 2, reorderPoint: 10, unit: "pieces", supplier: "Audio Tech Indonesia", lastOrdered: "2025-08-15", city: "jakarta" },
+    // Consumables now loaded from database via API
   ],
 
   setSelectedCity: (city) => set({ selectedCity: city }),

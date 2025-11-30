@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Weekly Report</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .container {
+            background: #f5f5f5;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        button {
+            background: #3b82f6;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #2563eb;
+        }
+        .loading {
+            background: #6b7280;
+            cursor: not-allowed;
+        }
+        .success {
+            background: #10b981;
+        }
+        .error {
+            background: #ef4444;
+        }
+    </style>
+</head>
+<body>
+    <h1>🗓️ Weekly Report Test</h1>
+    
+    <div class="container">
+        <h3>Test Parameters:</h3>
+        <p><strong>City:</strong> jakarta</p>
+        <p><strong>Start Date:</strong> 2024-01-01</p>
+        <p><strong>End Date:</strong> 2024-01-07</p>
+        
+        <button id="testPDF" onclick="testWeeklyPDF()">📄 Test Weekly PDF</button>
+        <button id="testExcel" onclick="testWeeklyExcel()">📊 Test Weekly Excel</button>
+        
+        <div id="result" style="margin-top: 20px;"></div>
+    </div>
+
+    <script>
+        async function testWeeklyPDF() {
+            const button = document.getElementById('testPDF');
+            const result = document.getElementById('result');
+            
+            button.textContent = '⏳ Generating PDF...';
+            button.className = 'loading';
+            
+            try {
+                const response = await fetch('http://localhost:5555/api/analytics/export', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        type: 'weekly',
+                        format: 'pdf',
+                        city: 'jakarta',
+                        startDate: '2024-01-01',
+                        endDate: '2024-01-07'
+                    })
+                });
+
+                if (response.ok) {
+                    // Create blob and download
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'Weekly_Report_Test.pdf';
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                    
+                    button.textContent = '✅ PDF Downloaded!';
+                    button.className = 'success';
+                    result.innerHTML = '<p style="color: green;">✅ Weekly PDF report generated successfully!</p>';
+                } else {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+            } catch (error) {
+                button.textContent = '❌ PDF Failed';
+                button.className = 'error';
+                result.innerHTML = `<p style="color: red;">❌ Error: ${error.message}</p>`;
+            }
+            
+            setTimeout(() => {
+                button.textContent = '📄 Test Weekly PDF';
+                button.className = '';
+            }, 3000);
+        }
+
+        async function testWeeklyExcel() {
+            const button = document.getElementById('testExcel');
+            const result = document.getElementById('result');
+            
+            button.textContent = '⏳ Generating Excel...';
+            button.className = 'loading';
+            
+            try {
+                const response = await fetch('http://localhost:5555/api/analytics/export', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        type: 'weekly',
+                        format: 'excel',
+                        city: 'jakarta',
+                        startDate: '2024-01-01',
+                        endDate: '2024-01-07'
+                    })
+                });
+
+                if (response.ok) {
+                    // Create blob and download
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'Weekly_Report_Test.xlsx';
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                    
+                    button.textContent = '✅ Excel Downloaded!';
+                    button.className = 'success';
+                    result.innerHTML = '<p style="color: green;">✅ Weekly Excel report generated successfully!</p>';
+                } else {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+            } catch (error) {
+                button.textContent = '❌ Excel Failed';
+                button.className = 'error';
+                result.innerHTML = `<p style="color: red;">❌ Error: ${error.message}</p>`;
+            }
+            
+            setTimeout(() => {
+                button.textContent = '📊 Test Weekly Excel';
+                button.className = '';
+            }, 3000);
+        }
+    </script>
+</body>
+</html>

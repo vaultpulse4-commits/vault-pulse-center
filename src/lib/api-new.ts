@@ -1,0 +1,266 @@
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+
+// Helper to get auth token from storage
+const getAuthToken = (): string | null => {
+  try {
+    const authStorage = localStorage.getItem('vault-auth-storage');
+    if (authStorage) {
+      const parsed = JSON.parse(authStorage);
+      return parsed.state?.accessToken || null;
+    }
+  } catch (error) {
+    console.error('Error getting auth token:', error);
+  }
+  return null;
+};
+
+// Helper to create authorized headers
+const getAuthHeaders = (): HeadersInit => {
+  const token = getAuthToken();
+  const headers: HeadersInit = {
+    'Content-Type': 'application/json',
+  };
+  
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+  
+  return headers;
+};
+
+// Helper for fetch with auth
+const authFetch = async (url: string, options: RequestInit = {}) => {
+  const response = await fetch(url, {
+    ...options,
+    headers: {
+      ...getAuthHeaders(),
+      ...options.headers,
+    },
+  });
+
+  // Handle 401 Unauthorized
+  if (response.status === 401) {
+    // Clear auth and redirect to login
+    localStorage.removeItem('vault-auth-storage');
+    window.location.href = '/login';
+    throw new Error('Unauthorized');
+  }
+
+  return response;
+};
+
+export const api = {
+  // Auth endpoints
+  auth: {
+    login: (email: string, password: string) =>
+      fetch(`${API_URL}/api/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+      }).then(r => r.json()),
+    
+    logout: () =>
+      authFetch(`${API_URL}/api/auth/logout`, { method: 'POST' }).then(r => r.json()),
+    
+    me: () =>
+      authFetch(`${API_URL}/api/auth/me`).then(r => r.json()),
+    
+    refresh: (refreshToken: string) =>
+      fetch(`${API_URL}/api/auth/refresh`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refreshToken })
+      }).then(r => r.json()),
+    
+    register: (data: any) =>
+      authFetch(`${API_URL}/api/auth/register`, {
+        method: 'POST',
+        body: JSON.stringify(data)
+      }).then(r => r.json()),
+    
+    getUsers: () =>
+      authFetch(`${API_URL}/api/auth/users`).then(r => r.json()),
+    
+    updateUser: (id: string, data: any) =>
+      authFetch(`${API_URL}/api/auth/users/${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify(data)
+      }).then(r => r.json()),
+    
+    deleteUser: (id: string) =>
+      authFetch(`${API_URL}/api/auth/users/${id}`, { method: 'DELETE' })
+  },
+  equipment: {
+    getAll: (city?: string) => 
+      authauthFetch(`${API_URL}/api/equipment${city ? `?city=${city}` : ''}`).then(r => r.json()),
+    getOne: (id: string) => 
+      authauthFetch(`${API_URL}/api/equipment/${id}`).then(r => r.json()),
+    create: (data: any) => 
+      authauthFetch(`${API_URL}/api/equipment`, {
+        method: 'POST',
+        body: JSON.stringify(data)
+      }).then(r => r.json()),
+    update: (id: string, data: any) => 
+      authauthFetch(`${API_URL}/api/equipment/${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify(data)
+      }).then(r => r.json()),
+    delete: (id: string) => 
+      authauthFetch(`${API_URL}/api/equipment/${id}`, { method: 'DELETE' })
+  },
+  
+  eventBriefs: {
+    getAll: (city?: string) => 
+      authFetch(`${API_URL}/api/event-briefs${city ? `?city=${city}` : ''}`).then(r => r.json()),
+    getOne: (id: string) => 
+      authFetch(`${API_URL}/api/event-briefs/${id}`).then(r => r.json()),
+    create: (data: any) => 
+      authFetch(`${API_URL}/api/event-briefs`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      }).then(r => r.json()),
+    update: (id: string, data: any) => 
+      authFetch(`${API_URL}/api/event-briefs/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      }).then(r => r.json()),
+    delete: (id: string) => 
+      authFetch(`${API_URL}/api/event-briefs/${id}`, { method: 'DELETE' })
+  },
+  
+  crew: {
+    getAll: (city?: string, shift?: string) => 
+      authFetch(`${API_URL}/api/crew?${city ? `city=${city}` : ''}${shift ? `&shift=${shift}` : ''}`).then(r => r.json()),
+    getOne: (id: string) => 
+      authFetch(`${API_URL}/api/crew/${id}`).then(r => r.json()),
+    create: (data: any) => 
+      authFetch(`${API_URL}/api/crew`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      }).then(r => r.json()),
+    update: (id: string, data: any) => 
+      authFetch(`${API_URL}/api/crew/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      }).then(r => r.json()),
+    delete: (id: string) => 
+      authFetch(`${API_URL}/api/crew/${id}`, { method: 'DELETE' })
+  },
+  
+  maintenance: {
+    getAll: (city?: string) => 
+      authFetch(`${API_URL}/api/maintenance${city ? `?city=${city}` : ''}`).then(r => r.json()),
+    getOne: (id: string) => 
+      authFetch(`${API_URL}/api/maintenance/${id}`).then(r => r.json()),
+    create: (data: any) => 
+      authFetch(`${API_URL}/api/maintenance`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      }).then(r => r.json()),
+    update: (id: string, data: any) => 
+      authFetch(`${API_URL}/api/maintenance/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      }).then(r => r.json()),
+    delete: (id: string) => 
+      authFetch(`${API_URL}/api/maintenance/${id}`, { method: 'DELETE' })
+  },
+  
+  incidents: {
+    getAll: (city?: string) => 
+      authFetch(`${API_URL}/api/incidents${city ? `?city=${city}` : ''}`).then(r => r.json()),
+    create: (data: any) => 
+      authFetch(`${API_URL}/api/incidents`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      }).then(r => r.json())
+  },
+  
+  proposals: {
+    getAll: (city?: string) => 
+      authFetch(`${API_URL}/api/proposals${city ? `?city=${city}` : ''}`).then(r => r.json()),
+    getOne: (id: string) => 
+      authFetch(`${API_URL}/api/proposals/${id}`).then(r => r.json()),
+    create: (data: any) => 
+      authFetch(`${API_URL}/api/proposals`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      }).then(r => r.json()),
+    update: (id: string, data: any) => 
+      authFetch(`${API_URL}/api/proposals/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      }).then(r => r.json()),
+    delete: (id: string) => 
+      authFetch(`${API_URL}/api/proposals/${id}`, { method: 'DELETE' })
+  },
+  
+  rnd: {
+    getAll: (city?: string) => 
+      authFetch(`${API_URL}/api/rnd${city ? `?city=${city}` : ''}`).then(r => r.json()),
+    getOne: (id: string) => 
+      authFetch(`${API_URL}/api/rnd/${id}`).then(r => r.json()),
+    create: (data: any) => 
+      authFetch(`${API_URL}/api/rnd`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      }).then(r => r.json()),
+    update: (id: string, data: any) => 
+      authFetch(`${API_URL}/api/rnd/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      }).then(r => r.json())
+  },
+  
+  consumables: {
+    getAll: (city?: string) => 
+      authFetch(`${API_URL}/api/consumables${city ? `?city=${city}` : ''}`).then(r => r.json()),
+    getOne: (id: string) => 
+      authFetch(`${API_URL}/api/consumables/${id}`).then(r => r.json()),
+    create: (data: any) => 
+      authFetch(`${API_URL}/api/consumables`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      }).then(r => r.json()),
+    update: (id: string, data: any) => 
+      authFetch(`${API_URL}/api/consumables/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      }).then(r => r.json())
+  },
+  
+  alerts: {
+    getAll: (city?: string, acknowledged?: boolean) => 
+      authFetch(`${API_URL}/api/alerts?${city ? `city=${city}` : ''}${acknowledged !== undefined ? `&acknowledged=${acknowledged}` : ''}`).then(r => r.json()),
+    update: (id: string, data: any) => 
+      authFetch(`${API_URL}/api/alerts/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      }).then(r => r.json())
+  },
+  
+  kpi: {
+    getCurrent: (city: string) => 
+      authFetch(`${API_URL}/api/kpi/${city}/current`).then(r => r.json()),
+    update: (city: string, data: any) => 
+      authFetch(`${API_URL}/api/kpi/${city}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      }).then(r => r.json())
+  }
+};

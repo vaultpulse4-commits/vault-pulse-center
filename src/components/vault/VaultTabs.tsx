@@ -1,25 +1,29 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { EventBriefsTab } from "./tabs/EventBriefsTab";
 import { ShiftCoverageTab } from "./tabs/ShiftCoverageTab";
-import { EquipmentHealthTab } from "./tabs/EquipmentHealthTab";
+import { EquipmentHealthTab } from "./tabs/EquipmentHealthTab-v2";
 import { MaintenanceLogsTab } from "./tabs/MaintenanceLogsTab";
 import { TeamPerformanceTab } from "./tabs/TeamPerformanceTab";
 import { ProposalsTab } from "./tabs/ProposalsTab";
 import { RndTab } from "./tabs/RndTab";
 import { ConsumablesTab } from "./tabs/ConsumablesTab";
+import { SuppliersTab } from "./tabs/SuppliersTab";
+import { AreaManagementTab } from "./tabs/AreaManagementTab";
 
 export function VaultTabs() {
   return (
     <Tabs defaultValue="event-briefs" className="w-full">
-      <TabsList className="grid w-full grid-cols-4 lg:grid-cols-8 h-auto p-1">
+      <TabsList className="grid w-full grid-cols-5 lg:grid-cols-10 h-auto p-1">
         <TabsTrigger value="event-briefs" className="text-xs">Event Briefs</TabsTrigger>
         <TabsTrigger value="shift-coverage" className="text-xs">Shift & Coverage</TabsTrigger>
         <TabsTrigger value="equipment-health" className="text-xs">Equipment Health</TabsTrigger>
+        <TabsTrigger value="areas" className="text-xs">Areas</TabsTrigger>
         <TabsTrigger value="maintenance" className="text-xs">Maintenance</TabsTrigger>
         <TabsTrigger value="team-performance" className="text-xs">Team Performance</TabsTrigger>
         <TabsTrigger value="proposals" className="text-xs">Proposals</TabsTrigger>
         <TabsTrigger value="rnd" className="text-xs">R&D</TabsTrigger>
         <TabsTrigger value="consumables" className="text-xs">Consumables</TabsTrigger>
+        <TabsTrigger value="suppliers" className="text-xs">Suppliers</TabsTrigger>
       </TabsList>
       
       <TabsContent value="event-briefs" className="mt-6">
@@ -32,6 +36,10 @@ export function VaultTabs() {
       
       <TabsContent value="equipment-health" className="mt-6">
         <EquipmentHealthTab />
+      </TabsContent>
+      
+      <TabsContent value="areas" className="mt-6">
+        <AreaManagementTab />
       </TabsContent>
       
       <TabsContent value="maintenance" className="mt-6">
@@ -52,6 +60,10 @@ export function VaultTabs() {
       
       <TabsContent value="consumables" className="mt-6">
         <ConsumablesTab />
+      </TabsContent>
+      
+      <TabsContent value="suppliers" className="mt-6">
+        <SuppliersTab />
       </TabsContent>
     </Tabs>
   );
