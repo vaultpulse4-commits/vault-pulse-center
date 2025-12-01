@@ -1,13 +1,22 @@
-// Production backend URL - Vite replaces import.meta.env.MODE at build time
-const isDevelopment = import.meta.env.MODE === 'development';
-const API_URL = isDevelopment
-  ? (import.meta.env.VITE_API_URL || 'http://localhost:3001')
-  : (import.meta.env.VITE_API_URL || 'https://vault-pulse-center-production.up.railway.app');
-
-// Debug logging
-console.log('[API] Mode:', import.meta.env.MODE);
-console.log('[API] VITE_API_URL env:', import.meta.env.VITE_API_URL);
-console.log('[API] Using API URL:', API_URL);
+// API URL from environment, no localhost fallback in production
+const API_URL = (() => {
+  const env = import.meta.env.VITE_API_URL;
+  const isDev = import.meta.env.MODE === 'development';
+  
+  if (env) {
+    console.log('[API] Using VITE_API_URL:', env);
+    return env;
+  }
+  
+  if (isDev) {
+    console.log('[API] Development mode, using localhost');
+    return 'http://localhost:3001';
+  }
+  
+  // Production without env var - this should not happen
+  console.warn('[API] WARNING: No VITE_API_URL in production!');
+  return 'https://vault-pulse-center-production.up.railway.app';
+})();
 
 // Helper to get auth token from storage
 const getAuthToken = (): string | null => {
