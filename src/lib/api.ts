@@ -1,21 +1,18 @@
-// API URL from environment, no localhost fallback in production
+// PRODUCTION API URL - Railway Backend
+// DO NOT use localhost in production
 const API_URL = (() => {
-  const env = import.meta.env.VITE_API_URL;
-  const isDev = import.meta.env.MODE === 'development';
-  
-  if (env) {
-    console.log('[API] Using VITE_API_URL:', env);
-    return env;
-  }
-  
-  if (isDev) {
-    console.log('[API] Development mode, using localhost');
+  // For development only
+  if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
     return 'http://localhost:3001';
   }
   
-  // Production without env var - this should not happen
-  console.warn('[API] WARNING: No VITE_API_URL in production!');
-  return 'https://vault-pulse-center-production.up.railway.app';
+  // For production - always use Railway
+  const railwayUrl = 'https://vault-pulse-center-production.up.railway.app';
+  const envUrl = import.meta.env.VITE_API_URL;
+  
+  const finalUrl = envUrl || railwayUrl;
+  console.log('[API] Production URL:', finalUrl);
+  return finalUrl;
 })();
 
 // Helper to get auth token from storage
