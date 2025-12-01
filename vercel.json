@@ -1,12 +1,13 @@
 {
-  "buildCommand": "VITE_API_URL=https://vault-pulse-center-production.up.railway.app npm run build",
+  "buildCommand": "npm run build",
   "devCommand": "npm run dev",
   "installCommand": "npm install",
   "framework": "vite",
   "outputDirectory": "dist",
-  "buildEnv": ["VITE_API_URL"],
   "env": {
-    "VITE_API_URL": "https://vault-pulse-center-production.up.railway.app"
+    "VITE_API_URL": {
+      "value": "https://vault-pulse-center-production.up.railway.app"
+    }
   },
   "rewrites": [
     {
