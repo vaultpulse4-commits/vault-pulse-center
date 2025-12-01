@@ -106,6 +106,9 @@ export const api = {
     login: (email: string, password: string) =>
       fetch(`${API_URL}/api/auth/login`, {
         method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify({ email, password })
       }).then(r => r.json()),
     
