@@ -1,0 +1,43 @@
+{
+  "buildCommand": "npm run build",
+  "devCommand": "npm run dev",
+  "installCommand": "npm install",
+  "framework": "vite",
+  "outputDirectory": "dist",
+  "env": {
+    "VITE_API_URL": "https://vault-pulse-api.vercel.app"
+  },
+  "envPrefix": "VITE_",
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/api(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-cache, no-store, must-revalidate"
+        }
+      ]
+    },
+    {
+      "source": "/assets/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
+      ]
+    }
+  ],
+  "functions": {
+    "api/**/*.ts": {
+      "memory": 1024,
+      "maxDuration": 60
+    }
+  }
+}
