@@ -36,22 +36,49 @@ const getAllowedOrigins = () => {
     'http://localhost:5173',
     'http://localhost:3000',
     'https://vault-pulse-center.vercel.app',
+    'https://vault-pulse-center-seven.vercel.app',
   ];
   
-  const frontendUrl = process.env.FRONTEND_URL;
-  if (frontendUrl && !origins.includes(frontendUrl)) {
-    origins.push(frontendUrl);
+  // Support multiple origins via env (comma-separated)
+  const frontendUrls = process.env.FRONTEND_URL;
+  if (frontendUrls) {
+    frontendUrls.split(',').forEach(url => {
+      const trimmed = url.trim();
+      if (trimmed && !origins.includes(trimmed)) {
+        origins.push(trimmed);
+      }
+    });
   }
   
   return origins;
 };
 
-app.use(cors({
-  origin: getAllowedOrigins(),
+// CORS configuration with detailed logging
+const corsOptions = {
+  origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
+    const allowedOrigins = getAllowedOrigins();
+    
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) {
+      return callback(null, true);
+    }
+    
+    if (allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      console.warn(`❌ CORS blocked origin: ${origin}. Allowed: ${allowedOrigins.join(', ')}`);
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
-  credentials: true
-}));
+  credentials: true,
+  optionsSuccessStatus: 200 // Some legacy browsers choke on 204
+};
+
+app.use(cors(corsOptions));
+// Log allowed origins on startup
+console.log(`📋 CORS Allowed Origins: ${getAllowedOrigins().join(', ')}`);
 app.use(express.json({ limit: '10mb' })); // Increase payload limit for base64 images
 app.use(express.urlencoded({ limit: '10mb', extended: true }));
 app.use(cookieParser());
