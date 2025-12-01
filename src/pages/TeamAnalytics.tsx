@@ -197,9 +197,9 @@ export default function TeamAnalytics() {
   // Check permissions
   if (!canView) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="min-h-screen bg-background flex items-center justify-center p-3 sm:p-4 md:p-6">
         <div className="text-center space-y-4">
-          <p className="text-lg text-muted-foreground">You don't have permission to view team performance.</p>
+          <p className="text-base sm:text-lg text-muted-foreground">You don't have permission to view team performance.</p>
           <Button onClick={() => navigate('/')}>Go Back</Button>
         </div>
       </div>
@@ -215,7 +215,7 @@ export default function TeamAnalytics() {
   }
 
   return (
-    <div className="min-h-screen bg-background p-6">
+    <div className="min-h-screen bg-background p-3 sm:p-4 md:p-6">
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">

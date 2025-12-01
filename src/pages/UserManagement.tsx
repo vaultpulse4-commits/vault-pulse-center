@@ -153,26 +153,26 @@ export default function UserManagement() {
   };
 
   return (
-    <div className="min-h-screen bg-background p-6">
+    <div className="min-h-screen bg-background p-3 sm:p-4 md:p-6">
       <div className="container mx-auto max-w-7xl">
         {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
+        <div className="mb-6 sm:mb-8">
+          <div className="flex items-center justify-between gap-2 flex-wrap">
+            <div className="flex items-center gap-2 sm:gap-3 min-w-0">
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={() => navigate('/')}
-                className="mr-2"
+                className="mr-1 sm:mr-2 flex-shrink-0"
               >
                 <ArrowLeft className="h-5 w-5" />
               </Button>
-              <div className="p-2 rounded-lg bg-gradient-primary">
-                <Users className="h-6 w-6 text-white" />
+              <div className="p-1.5 sm:p-2 rounded-lg bg-gradient-primary flex-shrink-0">
+                <Users className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
               </div>
-              <div>
-                <h1 className="text-3xl font-bold text-foreground">User Management</h1>
-                <p className="text-muted-foreground">Manage users and their permissions</p>
+              <div className="min-w-0">
+                <h1 className="text-2xl sm:text-3xl font-bold text-foreground truncate">User Management</h1>
+                <p className="text-xs sm:text-sm text-muted-foreground">Manage users and their permissions</p>
               </div>
             </div>
             

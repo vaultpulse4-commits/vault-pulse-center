@@ -75,7 +75,7 @@ export default function PermissionMatrix() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background p-6 flex items-center justify-center">
+      <div className="min-h-screen bg-background p-3 sm:p-4 md:p-6 flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
           <p className="text-muted-foreground">Loading permissions...</p>
@@ -91,7 +91,7 @@ export default function PermissionMatrix() {
   ];
 
   return (
-    <div className="min-h-screen bg-background p-6">
+    <div className="min-h-screen bg-background p-3 sm:p-4 md:p-6">
       <div className="container mx-auto max-w-7xl">
         {/* Header */}
         <div className="mb-8">
