@@ -79,28 +79,30 @@ export function KPICards() {
   };
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-2 sm:gap-3 lg:gap-4">
       {kpiData.map((kpi, index) => {
         const Icon = kpi.icon;
         return (
-          <Card key={index} className="bg-gradient-card border-border/50 hover:border-primary/30 transition-colors">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-xs text-muted-foreground flex items-center gap-1">
-                <Icon className="h-3 w-3" />
-                {kpi.title}
+          <Card key={index} className="bg-gradient-card border-border/50 hover:border-primary/30 transition-colors h-full">
+            <CardHeader className="pb-2 sm:pb-3">
+              <CardTitle className="text-xs sm:text-sm text-muted-foreground flex items-center gap-1 line-clamp-2">
+                <Icon className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
+                <span>{kpi.title}</span>
               </CardTitle>
             </CardHeader>
             <CardContent className="pt-0">
-              <div className="flex items-end justify-between">
-                <div>
-                  <div className={`text-xl font-bold ${kpi.color}`}>
+              <div className="flex items-end justify-between gap-2">
+                <div className="min-w-0 flex-1">
+                  <div className={`text-lg sm:text-xl lg:text-2xl font-bold ${kpi.color} truncate`}>
                     {kpi.value}
-                    <span className="text-xs text-muted-foreground ml-1">
+                    <span className="text-xs sm:text-sm text-muted-foreground ml-1">
                       {kpi.unit}
                     </span>
                   </div>
                 </div>
-                {getTrendIcon(kpi.trend)}
+                <div className="flex-shrink-0">
+                  {getTrendIcon(kpi.trend)}
+                </div>
               </div>
             </CardContent>
           </Card>
