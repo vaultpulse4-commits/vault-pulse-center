@@ -103,14 +103,24 @@ const authFetch = async (url: string, options: RequestInit = {}) => {
 export const api = {
   // Auth endpoints
   auth: {
-    login: (email: string, password: string) =>
-      fetch(`${API_URL}/api/auth/login`, {
+    login: (email: string, password: string) => {
+      const url = `${API_URL}/api/auth/login`;
+      console.log('[AUTH] Login attempt to:', url);
+      return fetch(url, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include',
         body: JSON.stringify({ email, password })
-      }).then(r => r.json()),
+      }).then(r => {
+        console.log('[AUTH] Login response status:', r.status);
+        return r.json();
+      }).catch(err => {
+        console.error('[AUTH] Login error:', err);
+        throw err;
+      });
+    },
     
     logout: () =>
       authFetch(`${API_URL}/api/auth/logout`, { method: 'POST' }).then(r => r.json()),
