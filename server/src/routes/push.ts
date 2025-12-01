@@ -4,12 +4,15 @@ import webPush from 'web-push';
 
 export const pushRouter = Router();
 
-// Configure web-push
-webPush.setVapidDetails(
-  process.env.VAPID_SUBJECT || 'mailto:admin@vaultclub.com',
-  process.env.VAPID_PUBLIC_KEY || '',
-  process.env.VAPID_PRIVATE_KEY || ''
-);
+// Configure web-push only if VAPID keys are available
+const hasVapidKeys = process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY;
+if (hasVapidKeys) {
+  webPush.setVapidDetails(
+    process.env.VAPID_SUBJECT || 'mailto:admin@vaultclub.com',
+    process.env.VAPID_PUBLIC_KEY!,
+    process.env.VAPID_PRIVATE_KEY!
+  );
+}
 
 // Get VAPID public key
 pushRouter.get('/vapid-public-key', (req: Request, res: Response) => {
@@ -142,6 +145,12 @@ export async function sendPushNotification(
   }
 ) {
   try {
+    // Skip if VAPID keys not configured
+    if (!hasVapidKeys) {
+      console.log('Push notifications disabled: VAPID keys not configured');
+      return { success: true, sent: 0 };
+    }
+
     const subscriptions = await prisma.pushSubscription.findMany({
       where: { userId, isActive: true }
     });
