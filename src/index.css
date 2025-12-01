@@ -70,3 +70,52 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Date input styling for cross-browser compatibility */
+@layer components {
+  /* Chrome and Edge calendar picker styling */
+  input[type="date"],
+  input[type="datetime-local"],
+  input[type="month"],
+  input[type="time"],
+  input[type="week"] {
+    @apply appearance-auto;
+  }
+
+  /* Show calendar picker icon in Chrome/Edge */
+  input[type="date"]::-webkit-calendar-picker-indicator,
+  input[type="datetime-local"]::-webkit-calendar-picker-indicator,
+  input[type="month"]::-webkit-calendar-picker-indicator,
+  input[type="time"]::-webkit-calendar-picker-indicator,
+  input[type="week"]::-webkit-calendar-picker-indicator {
+    @apply cursor-pointer opacity-100;
+    filter: invert(0.8);
+  }
+
+  /* Hover effect for calendar picker */
+  input[type="date"]::-webkit-calendar-picker-indicator:hover,
+  input[type="datetime-local"]::-webkit-calendar-picker-indicator:hover,
+  input[type="month"]::-webkit-calendar-picker-indicator:hover,
+  input[type="time"]::-webkit-calendar-picker-indicator:hover,
+  input[type="week"]::-webkit-calendar-picker-indicator:hover {
+    filter: invert(0.6);
+  }
+
+  /* Firefox calendar button styling */
+  input[type="date"]::-moz-calendar-picker-button,
+  input[type="datetime-local"]::-moz-calendar-picker-button,
+  input[type="month"]::-moz-calendar-picker-button,
+  input[type="time"]::-moz-calendar-picker-button,
+  input[type="week"]::-moz-calendar-picker-button {
+    @apply cursor-pointer;
+  }
+
+  /* Ensure proper padding for date inputs with icon */
+  input[type="date"],
+  input[type="datetime-local"],
+  input[type="month"],
+  input[type="time"],
+  input[type="week"] {
+    padding-right: 2.5rem;
+  }
+}

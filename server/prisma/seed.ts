@@ -277,11 +277,14 @@ async function main() {
   console.log('Seeding maintenance logs...');
   const cdj = await prisma.equipment.findFirst({ where: { name: 'CDJ 3000 #1' } });
   const ledWall = await prisma.equipment.findFirst({ where: { name: 'LED Wall Controller' } });
+  const voidSpeakers = await prisma.equipment.findFirst({ where: { name: 'Void Nexus Speakers' } });
+  const martinAura = await prisma.equipment.findFirst({ where: { name: 'Martin MAC Aura' } });
   const chris = await prisma.crewMember.findFirst({ where: { name: 'Chris' } });
   const nando = await prisma.crewMember.findFirst({ where: { name: 'Nando' } });
   
   await prisma.maintenanceLog.createMany({
     data: [
+      // Recent maintenance logs for testing
       {
         equipmentId: cdj?.id,
         type: 'Preventive',
@@ -290,7 +293,7 @@ async function main() {
         mttr: 1.5,
         cost: 150000,
         parts: ['Cleaning kit', 'Calibration disc'],
-        date: new Date('2025-08-25'),
+        date: new Date('2025-11-28'),
         technicianId: chris?.id,
         city: 'jakarta',
         photo: ''
@@ -299,10 +302,63 @@ async function main() {
         equipmentId: ledWall?.id,
         type: 'Corrective',
         issue: 'Display artifacts in upper right panel',
-        status: 'In_Progress',
+        status: 'Completed',
         mttr: 4.2,
         cost: 850000,
         parts: ['LED Module', 'Control board'],
+        date: new Date('2025-11-29'),
+        technicianId: nando?.id,
+        city: 'jakarta',
+        photo: ''
+      },
+      {
+        equipmentId: voidSpeakers?.id,
+        type: 'Preventive',
+        issue: 'Driver inspection and firmware update',
+        status: 'Completed',
+        mttr: 2.0,
+        cost: 250000,
+        parts: ['Firmware update'],
+        date: new Date('2025-11-30'),
+        technicianId: chris?.id,
+        city: 'jakarta',
+        photo: ''
+      },
+      {
+        equipmentId: martinAura?.id,
+        type: 'Corrective',
+        issue: 'Pan motor grinding noise',
+        status: 'In_Progress',
+        mttr: 3.5,
+        cost: 450000,
+        parts: ['Motor assembly', 'Bearing kit'],
+        date: new Date('2025-12-01'),
+        technicianId: nando?.id,
+        city: 'jakarta',
+        photo: ''
+      },
+      // Old maintenance logs (historical data)
+      {
+        equipmentId: cdj?.id,
+        type: 'Preventive',
+        issue: 'Annual service check',
+        status: 'Completed',
+        mttr: 1.0,
+        cost: 100000,
+        parts: ['Cleaning supplies'],
+        date: new Date('2025-08-25'),
+        technicianId: chris?.id,
+        city: 'jakarta',
+        photo: ''
+      },
+      {
+        equipmentId: ledWall?.id,
+        type: 'Corrective',
+        issue: 'Panel calibration drift',
+        status: 'Completed',
+        mttr: 2.5,
+        cost: 350000,
+        parts: ['Calibration tools'],
         date: new Date('2025-08-26'),
         technicianId: nando?.id,
         city: 'jakarta',

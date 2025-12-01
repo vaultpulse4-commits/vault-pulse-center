@@ -944,6 +944,10 @@ export class ReportGenerator {
       doc.fontSize(8).fillColor('#64748b').text(`${maintenanceLogs.length} maintenance activities recorded this week`);
       doc.moveDown(0.5);
 
+      if (doc.y > 650) {
+        doc.addPage();
+      }
+
       const maintenanceTableTop = doc.y;
       const maintenanceCols = [25, 115, 75, 105, 80, 120];
       const maintenanceHeaders = ['#', 'Equipment', 'Type', 'Issue Description', 'Status', 'Date'];

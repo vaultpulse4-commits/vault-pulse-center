@@ -231,22 +231,43 @@ consumableRouter.post('/:id/adjust', async (req, res) => {
     }
     
     const balanceBefore = consumable.currentStock;
-    const balanceAfter = balanceBefore + quantity;
     
-    if (balanceAfter < 0) {
-      return res.status(400).json({ error: 'Insufficient stock' });
+    // Calculate balance based on movement type:
+    // - Purchase: ADD to stock (positive quantity in DB)
+    // - Usage: SUBTRACT from stock (negative quantity in DB)
+    // - Return: SUBTRACT from stock (negative quantity in DB)
+    let actualQuantity = quantity;
+    let balanceAfter;
+    
+    if (type === 'Purchase') {
+      // Purchase adds to stock - quantity stored as positive
+      actualQuantity = Math.abs(quantity);
+      balanceAfter = balanceBefore + actualQuantity;
+    } else if (type === 'Usage' || type === 'Return') {
+      // Usage/Return removes from stock - quantity stored as negative
+      actualQuantity = -Math.abs(quantity);
+      balanceAfter = balanceBefore + actualQuantity; // Adding negative = subtracting
+    } else {
+      return res.status(400).json({ error: 'Invalid type. Must be Purchase, Usage, or Return' });
     }
     
-    // Create stock movement
+    if (balanceAfter < 0) {
+      return res.status(400).json({ 
+        error: 'Insufficient stock',
+        details: `Cannot ${type.toLowerCase()} ${Math.abs(quantity)} units. Current stock: ${balanceBefore}`
+      });
+    }
+    
+    // Create stock movement with properly signed quantity
     const movement = await prisma.stockMovement.create({
       data: {
         consumableId: consumable.id,
         type,
-        quantity,
+        quantity: actualQuantity, // Positive for Purchase, negative for Usage/Return
         balanceBefore,
         balanceAfter,
         unitCost: consumable.unitCost,
-        totalCost: Math.abs(quantity) * consumable.unitCost,
+        totalCost: Math.abs(actualQuantity) * consumable.unitCost,
         reference,
         notes,
         performedBy,
@@ -305,13 +326,36 @@ consumableRouter.get('/:id/analytics', async (req, res) => {
       orderBy: { createdAt: 'asc' }
     });
     
+    // Calculate analytics correctly:
+    // - Usage: negative quantity (e.g., -20 items) → show as positive 20 in analytics
+    // - Return: negative quantity (e.g., -10 items) → show as positive 10 in analytics  
+    // - Purchase: positive quantity (e.g., +50 items) → show as 50
+    
+    const totalUsage = movements
+      .filter(m => m.type === 'Usage')
+      .reduce((sum, m) => sum + Math.abs(m.quantity), 0);
+    
+    const totalReturns = movements
+      .filter(m => m.type === 'Return')
+      .reduce((sum, m) => sum + Math.abs(m.quantity), 0);
+    
+    const totalPurchases = movements
+      .filter(m => m.type === 'Purchase')
+      .reduce((sum, m) => sum + m.quantity, 0);
+    
     const analytics = {
-      totalUsage: movements.filter(m => m.type === 'Usage').reduce((sum, m) => sum + Math.abs(m.quantity), 0),
-      totalPurchases: movements.filter(m => m.type === 'Purchase').reduce((sum, m) => sum + m.quantity, 0),
+      totalUsage,
+      totalReturns,
+      totalPurchases,
       totalCost: movements.filter(m => m.totalCost).reduce((sum, m) => sum + (m.totalCost || 0), 0),
       averageUsagePerDay: 0,
       usageByType: movements.reduce((acc, m) => {
-        acc[m.type] = (acc[m.type] || 0) + Math.abs(m.quantity);
+        // For Usage and Return: use absolute value since they're stored as negative
+        // For Purchase: use as-is since it's positive
+        const displayQuantity = (m.type === 'Usage' || m.type === 'Return') 
+          ? Math.abs(m.quantity) 
+          : m.quantity;
+        acc[m.type] = (acc[m.type] || 0) + displayQuantity;
         return acc;
       }, {} as Record<string, number>)
     };

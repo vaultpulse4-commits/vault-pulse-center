@@ -48,6 +48,7 @@ interface StockMovement {
 
 interface StockAnalytics {
   totalUsage: number;
+  totalReturns: number;
   totalPurchases: number;
   totalCost: number;
   averageUsagePerDay: number;
@@ -620,15 +621,21 @@ export function ConsumablesTab() {
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <Label htmlFor="adjustQuantity">Quantity</Label>
+              <Label htmlFor="adjustQuantity">Quantity *</Label>
               <Input
                 id="adjustQuantity"
                 type="number"
                 step="0.01"
+                min="0"
                 value={adjustData.quantity}
                 onChange={(e) => setAdjustData(prev => ({ ...prev, quantity: Number(e.target.value) }))}
-                placeholder="Positive for add, negative for remove"
+                placeholder="Enter amount (always positive number)"
               />
+              <p className="text-xs text-muted-foreground mt-1">
+                {adjustData.type === 'Purchase' && '✓ Will ADD to stock'}
+                {adjustData.type === 'Usage' && '✗ Will REMOVE from stock'}
+                {adjustData.type === 'Return' && '✗ Will REMOVE from stock'}
+              </p>
             </div>
             <div>
               <Label htmlFor="adjustType">Type</Label>
@@ -758,18 +765,26 @@ export function ConsumablesTab() {
               <div className="grid grid-cols-2 gap-4">
                 <Card>
                   <CardHeader className="pb-2">
-                    <CardTitle className="text-sm">Total Usage</CardTitle>
+                    <CardTitle className="text-sm text-destructive">Total Usage</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold">{Math.abs(analytics.totalUsage || 0)}</div>
+                    <div className="text-2xl font-bold text-destructive">{analytics.totalUsage || 0}</div>
                   </CardContent>
                 </Card>
                 <Card>
                   <CardHeader className="pb-2">
-                    <CardTitle className="text-sm">Total Purchased</CardTitle>
+                    <CardTitle className="text-sm text-success">Total Purchased</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold">{analytics.totalPurchases || 0}</div>
+                    <div className="text-2xl font-bold text-success">{analytics.totalPurchases || 0}</div>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm text-warning">Total Returns</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold text-warning">{analytics.totalReturns || 0}</div>
                   </CardContent>
                 </Card>
                 <Card>
@@ -780,7 +795,7 @@ export function ConsumablesTab() {
                     <div className="text-2xl font-bold">{(analytics.averageUsagePerDay || 0).toFixed(2)}</div>
                   </CardContent>
                 </Card>
-                <Card>
+                <Card className="col-span-2">
                   <CardHeader className="pb-2">
                     <CardTitle className="text-sm">Total Cost</CardTitle>
                   </CardHeader>
