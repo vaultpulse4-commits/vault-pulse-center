@@ -5,6 +5,7 @@ import { ChevronLeft, ChevronRight, Calendar, Download } from "lucide-react";
 import { api } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
+import { Card } from "@/components/ui/card";
 
 export function WeekPicker() {
   const { selectedWeek, setSelectedWeek, selectedCity } = useVaultStore();
@@ -89,58 +90,64 @@ export function WeekPicker() {
   };
 
   return (
-    <div className="flex items-center gap-4 bg-gradient-card rounded-lg p-4 border border-border/50">
-      <div className="flex items-center gap-2">
-        <Calendar className="h-5 w-5 text-primary" />
-        <span className="text-sm text-muted-foreground">Week Picker</span>
-      </div>
-      
-      <div className="flex items-center gap-2">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => navigateWeek('prev')}
-          className="h-8 w-8 p-0"
-        >
-          <ChevronLeft className="h-4 w-4" />
-        </Button>
-        
-        <div className="flex items-center gap-2 px-4">
-          <Badge variant="outline" className="font-mono">
-            {selectedWeek.year}
-          </Badge>
-          <Badge variant="outline">
-            {monthName}
-          </Badge>
-          <Badge variant="secondary">
+    <Card className="bg-gradient-card border-border/50">
+      <div className="p-3 sm:p-4 md:p-6 space-y-3 sm:space-y-4">
+        {/* Header */}
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <Calendar className="h-4 w-4 sm:h-5 sm:w-5 text-primary flex-shrink-0" />
+            <span className="text-xs sm:text-sm font-medium text-muted-foreground">Week Picker</span>
+          </div>
+          <Badge variant="secondary" className="text-xs">
             Week {selectedWeek.week}
           </Badge>
         </div>
-        
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => navigateWeek('next')}
-          className="h-8 w-8 p-0"
-        >
-          <ChevronRight className="h-4 w-4" />
-        </Button>
-      </div>
-      
-      <div className="text-sm text-muted-foreground">
-        {start} - {end}
-      </div>
 
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={generateWeeklyReport}
-        disabled={isGeneratingReport}
-        className="ml-auto flex items-center gap-2"
-      >
-        <Download className="h-4 w-4" />
-        {isGeneratingReport ? "Generating..." : "Weekly Report"}
-      </Button>
-    </div>
+        {/* Navigation Controls */}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3">
+          {/* Month/Year */}
+          <div className="text-xs sm:text-sm font-medium whitespace-nowrap">
+            {monthName} {selectedWeek.year}
+          </div>
+
+          {/* Navigation Buttons */}
+          <div className="flex items-center gap-1 sm:gap-2 w-full sm:w-auto">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => navigateWeek('prev')}
+              className="h-7 w-7 sm:h-8 sm:w-8 p-0 flex-shrink-0"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            
+            <div className="flex-1 sm:flex-none text-center text-xs sm:text-sm text-muted-foreground bg-muted/30 px-2 sm:px-3 py-1 rounded whitespace-nowrap">
+              {start} - {end}
+            </div>
+            
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => navigateWeek('next')}
+              className="h-7 w-7 sm:h-8 sm:w-8 p-0 flex-shrink-0"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+
+          {/* Generate Report Button */}
+          <Button
+            onClick={generateWeeklyReport}
+            disabled={isGeneratingReport}
+            size="sm"
+            className="w-full sm:w-auto text-xs sm:text-sm px-2 sm:px-3 h-7 sm:h-8 ml-auto sm:ml-0"
+          >
+            <Download className="h-3 w-3 sm:h-4 sm:w-4 mr-1 flex-shrink-0" />
+            <span className="hidden sm:inline">Weekly Report</span>
+            <span className="sm:hidden">Report</span>
+          </Button>
+        </div>
+      </div>
+    </Card>
   );
 }
