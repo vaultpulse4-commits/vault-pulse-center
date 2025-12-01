@@ -1,19 +1,11 @@
 // PRODUCTION API URL - Railway Backend
-// DO NOT use localhost in production
-const API_URL = (() => {
-  // For development only
-  if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
-    return 'http://localhost:3001';
-  }
-  
-  // For production - always use Railway
-  const railwayUrl = 'https://vault-pulse-center-production.up.railway.app';
-  const envUrl = import.meta.env.VITE_API_URL;
-  
-  const finalUrl = envUrl || railwayUrl;
-  console.log('[API] Production URL:', finalUrl);
-  return finalUrl;
-})();
+// HARDCODED - Do not allow localhost in production
+// v2 - Force cache invalidation
+const API_URL = 'https://vault-pulse-center-production.up.railway.app';
+
+// Log for debugging
+console.log('[API] Using Railway backend:', API_URL);
+console.log('[API] Hostname:', typeof window !== 'undefined' ? window.location.hostname : 'not-in-browser');
 
 // Helper to get auth token from storage
 const getAuthToken = (): string | null => {
