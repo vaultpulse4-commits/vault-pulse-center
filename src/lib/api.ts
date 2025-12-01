@@ -1,4 +1,7 @@
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+// Production backend URL - use environment variable if available, otherwise fallback
+const API_URL = process.env.NODE_ENV === 'production' 
+  ? (import.meta.env.VITE_API_URL || 'https://vault-pulse-center-production.up.railway.app')
+  : (import.meta.env.VITE_API_URL || 'http://localhost:3001');
 
 // Helper to get auth token from storage
 const getAuthToken = (): string | null => {
