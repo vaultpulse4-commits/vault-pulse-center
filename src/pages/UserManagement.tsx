@@ -311,12 +311,12 @@ export default function UserManagement() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>User</TableHead>
-                    <TableHead>Role</TableHead>
-                    <TableHead>Cities</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Last Login</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
+                    <TableHead className="min-w-[180px] md:min-w-auto">User</TableHead>
+                    <TableHead className="min-w-[100px] md:min-w-auto">Role</TableHead>
+                    <TableHead className="min-w-[120px] md:min-w-auto hidden sm:table-cell">Cities</TableHead>
+                    <TableHead className="min-w-[100px] md:min-w-auto">Status</TableHead>
+                    <TableHead className="min-w-[120px] md:min-w-auto hidden md:table-cell">Last Login</TableHead>
+                    <TableHead className="min-w-[180px] md:min-w-auto text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -324,17 +324,17 @@ export default function UserManagement() {
                     <TableRow key={user.id}>
                       <TableCell>
                         <div>
-                          <div className="font-medium">{user.name}</div>
-                          <div className="text-sm text-muted-foreground">{user.email}</div>
+                          <div className="font-medium text-sm sm:text-base">{user.name}</div>
+                          <div className="text-xs sm:text-sm text-muted-foreground">{user.email}</div>
                         </div>
                       </TableCell>
                       <TableCell>
-                        <Badge variant={getRoleBadgeVariant(user.role)}>
+                        <Badge variant={getRoleBadgeVariant(user.role)} className="text-xs sm:text-sm">
                           {getRoleDisplayName(user.role)}
                         </Badge>
                       </TableCell>
-                      <TableCell>
-                        <div className="flex gap-1">
+                      <TableCell className="hidden sm:table-cell">
+                        <div className="flex flex-wrap gap-1">
                           {user.cities.map(city => (
                             <Badge key={city} variant="outline" className="text-xs">
                               {city}
@@ -344,18 +344,20 @@ export default function UserManagement() {
                       </TableCell>
                       <TableCell>
                         {user.isActive ? (
-                          <Badge variant="default" className="bg-success">
+                          <Badge variant="default" className="bg-success text-xs sm:text-sm">
                             <UserCheck className="h-3 w-3 mr-1" />
-                            Active
+                            <span className="hidden sm:inline">Active</span>
+                            <span className="sm:hidden">On</span>
                           </Badge>
                         ) : (
-                          <Badge variant="secondary">
+                          <Badge variant="secondary" className="text-xs sm:text-sm">
                             <UserX className="h-3 w-3 mr-1" />
-                            Inactive
+                            <span className="hidden sm:inline">Inactive</span>
+                            <span className="sm:hidden">Off</span>
                           </Badge>
                         )}
                       </TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
+                      <TableCell className="text-xs sm:text-sm text-muted-foreground hidden md:table-cell">
                         {user.lastLogin 
                           ? formatDate(user.lastLogin)
                           : 'Never'}

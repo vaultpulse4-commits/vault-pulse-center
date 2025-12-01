@@ -138,23 +138,23 @@ export default function UserProfile() {
               <CardTitle>Profile Information</CardTitle>
               <CardDescription>Your personal details and role</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-6">
+            <CardContent className="space-y-4 sm:space-y-6">
               {/* Name */}
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <div className="p-3 rounded-full bg-primary/10">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
+                <div className="flex items-center gap-3 sm:gap-4">
+                  <div className="p-3 rounded-full bg-primary/10 flex-shrink-0">
                     <User className="h-5 w-5 text-primary" />
                   </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Full Name</p>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs sm:text-sm text-muted-foreground">Full Name</p>
                     {isEditingName ? (
-                      <div className="flex items-center gap-2 mt-1">
+                      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 mt-1 w-full">
                         <Input
                           value={nameForm.name}
                           onChange={(e) => setNameForm({ name: e.target.value })}
-                          className="w-64"
+                          className="w-full sm:w-64 text-sm"
                         />
-                        <Button size="sm" onClick={handleUpdateName} disabled={loading}>
+                        <Button size="sm" onClick={handleUpdateName} disabled={loading} className="w-full sm:w-auto">
                           {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Save'}
                         </Button>
                         <Button 
@@ -164,17 +164,18 @@ export default function UserProfile() {
                             setIsEditingName(false);
                             setNameForm({ name: user.name });
                           }}
+                          className="w-full sm:w-auto"
                         >
                           Cancel
                         </Button>
                       </div>
                     ) : (
-                      <p className="font-medium text-lg">{user.name}</p>
+                      <p className="font-medium text-base sm:text-lg">{user.name}</p>
                     )}
                   </div>
                 </div>
                 {!isEditingName && (
-                  <Button variant="outline" size="sm" onClick={() => setIsEditingName(true)}>
+                  <Button variant="outline" size="sm" onClick={() => setIsEditingName(true)} className="w-full sm:w-auto">
                     Edit
                   </Button>
                 )}
@@ -183,27 +184,27 @@ export default function UserProfile() {
               <Separator />
 
               {/* Email */}
-              <div className="flex items-center gap-4">
-                <div className="p-3 rounded-full bg-primary/10">
+              <div className="flex items-center gap-3 sm:gap-4">
+                <div className="p-3 rounded-full bg-primary/10 flex-shrink-0">
                   <Mail className="h-5 w-5 text-primary" />
                 </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Email Address</p>
-                  <p className="font-medium">{user.email}</p>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs sm:text-sm text-muted-foreground">Email Address</p>
+                  <p className="font-medium text-sm sm:text-base break-all">{user.email}</p>
                 </div>
               </div>
 
               <Separator />
 
               {/* Role */}
-              <div className="flex items-center gap-4">
-                <div className="p-3 rounded-full bg-primary/10">
+              <div className="flex items-center gap-3 sm:gap-4">
+                <div className="p-3 rounded-full bg-primary/10 flex-shrink-0">
                   <Shield className="h-5 w-5 text-primary" />
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Role</p>
+                  <p className="text-xs sm:text-sm text-muted-foreground">Role</p>
                   <div className="mt-1">
-                    <Badge variant={getRoleBadgeVariant(user.role)}>
+                    <Badge variant={getRoleBadgeVariant(user.role)} className="text-xs sm:text-sm">
                       {getRoleDisplayName(user.role)}
                     </Badge>
                   </div>
@@ -213,15 +214,15 @@ export default function UserProfile() {
               <Separator />
 
               {/* City Access */}
-              <div className="flex items-center gap-4">
-                <div className="p-3 rounded-full bg-primary/10">
+              <div className="flex items-start gap-3 sm:gap-4">
+                <div className="p-3 rounded-full bg-primary/10 flex-shrink-0">
                   <MapPin className="h-5 w-5 text-primary" />
                 </div>
-                <div>
+                <div className="flex-1 min-w-0">
                   <p className="text-sm text-muted-foreground">City Access</p>
-                  <div className="flex gap-2 mt-1">
+                <div className="flex flex-wrap gap-2 mt-1">
                     {user.cities.map(city => (
-                      <Badge key={city} variant="outline">
+                      <Badge key={city} variant="outline" className="text-xs sm:text-sm">
                         {city.charAt(0).toUpperCase() + city.slice(1)}
                       </Badge>
                     ))}
@@ -232,13 +233,13 @@ export default function UserProfile() {
               <Separator />
 
               {/* Last Login */}
-              <div className="flex items-center gap-4">
-                <div className="p-3 rounded-full bg-primary/10">
+              <div className="flex items-start gap-3 sm:gap-4">
+                <div className="p-3 rounded-full bg-primary/10 flex-shrink-0">
                   <Calendar className="h-5 w-5 text-primary" />
                 </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Last Login</p>
-                  <p className="font-medium">
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs sm:text-sm text-muted-foreground">Last Login</p>
+                  <p className="font-medium text-sm sm:text-base">
                     {user.lastLogin 
                       ? formatDateTime(user.lastLogin)
                       : 'Just now'}
@@ -254,56 +255,59 @@ export default function UserProfile() {
               <CardTitle>Security Settings</CardTitle>
               <CardDescription>Manage your password and security preferences</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-3 sm:space-y-4">
               {!isChangingPassword ? (
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <div className="p-3 rounded-full bg-destructive/10">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
+                  <div className="flex items-center gap-3 sm:gap-4">
+                    <div className="p-3 rounded-full bg-destructive/10 flex-shrink-0">
                       <Lock className="h-5 w-5 text-destructive" />
                     </div>
-                    <div>
-                      <p className="font-medium">Password</p>
-                      <p className="text-sm text-muted-foreground">••••••••</p>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-sm sm:text-base">Password</p>
+                      <p className="text-xs sm:text-sm text-muted-foreground">••••••••</p>
                     </div>
                   </div>
-                  <Button variant="outline" onClick={() => setIsChangingPassword(true)}>
+                  <Button variant="outline" onClick={() => setIsChangingPassword(true)} className="w-full sm:w-auto">
                     Change Password
                   </Button>
                 </div>
               ) : (
-                <div className="space-y-4">
+                <div className="space-y-3 sm:space-y-4">
                   <div>
-                    <Label htmlFor="currentPassword">Current Password</Label>
+                    <Label htmlFor="currentPassword" className="text-xs sm:text-sm">Current Password</Label>
                     <Input
                       id="currentPassword"
                       type="password"
                       value={passwordForm.currentPassword}
                       onChange={(e) => setPasswordForm(prev => ({ ...prev, currentPassword: e.target.value }))}
                       placeholder="Enter current password"
+                      className="mt-1 text-sm"
                     />
                   </div>
                   <div>
-                    <Label htmlFor="newPassword">New Password</Label>
+                    <Label htmlFor="newPassword" className="text-xs sm:text-sm">New Password</Label>
                     <Input
                       id="newPassword"
                       type="password"
                       value={passwordForm.newPassword}
                       onChange={(e) => setPasswordForm(prev => ({ ...prev, newPassword: e.target.value }))}
                       placeholder="Min. 8 characters"
+                      className="mt-1 text-sm"
                     />
                   </div>
                   <div>
-                    <Label htmlFor="confirmPassword">Confirm New Password</Label>
+                    <Label htmlFor="confirmPassword" className="text-xs sm:text-sm">Confirm New Password</Label>
                     <Input
                       id="confirmPassword"
                       type="password"
                       value={passwordForm.confirmPassword}
                       onChange={(e) => setPasswordForm(prev => ({ ...prev, confirmPassword: e.target.value }))}
                       placeholder="Re-enter new password"
+                      className="mt-1 text-sm"
                     />
                   </div>
-                  <div className="flex gap-2">
-                    <Button onClick={handleChangePassword} disabled={loading}>
+                  <div className="flex flex-col sm:flex-row gap-2 pt-2">
+                    <Button onClick={handleChangePassword} disabled={loading} className="w-full sm:w-auto">
                       {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
                       Update Password
                     </Button>
@@ -313,6 +317,7 @@ export default function UserProfile() {
                         setIsChangingPassword(false);
                         setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
                       }}
+                      className="w-full sm:w-auto"
                     >
                       Cancel
                     </Button>

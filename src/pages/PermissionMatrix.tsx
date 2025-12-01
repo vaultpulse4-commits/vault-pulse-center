@@ -191,22 +191,22 @@ export default function PermissionMatrix() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead className="w-[50%]">Permission</TableHead>
-                      <TableHead className="text-center">
-                        <Badge variant="destructive">Admin</Badge>
+                      <TableHead className="min-w-[200px] md:min-w-auto w-1/2">Permission</TableHead>
+                      <TableHead className="min-w-[80px] md:min-w-auto text-center">
+                        <Badge variant="destructive" className="text-xs sm:text-sm">Admin</Badge>
                       </TableHead>
-                      <TableHead className="text-center">
-                        <Badge variant="default">Manager</Badge>
+                      <TableHead className="min-w-[80px] md:min-w-auto text-center">
+                        <Badge variant="default" className="text-xs sm:text-sm">Manager</Badge>
                       </TableHead>
-                      <TableHead className="text-center">
-                        <Badge variant="secondary">Operator</Badge>
+                      <TableHead className="min-w-[80px] md:min-w-auto text-center">
+                        <Badge variant="secondary" className="text-xs sm:text-sm">Operator</Badge>
                       </TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {group.permissions.map((permission) => (
                       <TableRow key={permission.id}>
-                        <TableCell className="font-medium">{permission.displayName}</TableCell>
+                        <TableCell className="font-medium text-xs sm:text-sm">{permission.displayName}</TableCell>
                         <TableCell className="text-center">
                           {permission.admin ? (
                             <Check className="h-5 w-5 text-success mx-auto" />
