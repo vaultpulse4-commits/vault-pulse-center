@@ -13,56 +13,56 @@ import { AreaManagementTab } from "./tabs/AreaManagementTab";
 export function VaultTabs() {
   return (
     <Tabs defaultValue="event-briefs" className="w-full">
-      <TabsList className="grid w-full grid-cols-5 lg:grid-cols-10 h-auto p-1">
-        <TabsTrigger value="event-briefs" className="text-xs">Event Briefs</TabsTrigger>
-        <TabsTrigger value="shift-coverage" className="text-xs">Shift & Coverage</TabsTrigger>
-        <TabsTrigger value="equipment-health" className="text-xs">Equipment Health</TabsTrigger>
-        <TabsTrigger value="areas" className="text-xs">Areas</TabsTrigger>
-        <TabsTrigger value="maintenance" className="text-xs">Maintenance</TabsTrigger>
-        <TabsTrigger value="team-performance" className="text-xs">Team Performance</TabsTrigger>
-        <TabsTrigger value="proposals" className="text-xs">Proposals</TabsTrigger>
-        <TabsTrigger value="rnd" className="text-xs">R&D</TabsTrigger>
-        <TabsTrigger value="consumables" className="text-xs">Consumables</TabsTrigger>
-        <TabsTrigger value="suppliers" className="text-xs">Suppliers</TabsTrigger>
+      <TabsList>
+        <TabsTrigger value="event-briefs">Event Briefs</TabsTrigger>
+        <TabsTrigger value="shift-coverage">Shift & Coverage</TabsTrigger>
+        <TabsTrigger value="equipment-health">Equipment Health</TabsTrigger>
+        <TabsTrigger value="areas">Areas</TabsTrigger>
+        <TabsTrigger value="maintenance">Maintenance</TabsTrigger>
+        <TabsTrigger value="team-performance">Team Performance</TabsTrigger>
+        <TabsTrigger value="proposals">Proposals</TabsTrigger>
+        <TabsTrigger value="rnd">R&D</TabsTrigger>
+        <TabsTrigger value="consumables">Consumables</TabsTrigger>
+        <TabsTrigger value="suppliers">Suppliers</TabsTrigger>
       </TabsList>
       
-      <TabsContent value="event-briefs" className="mt-6">
+      <TabsContent value="event-briefs" className="mt-2 sm:mt-3 md:mt-4">
         <EventBriefsTab />
       </TabsContent>
       
-      <TabsContent value="shift-coverage" className="mt-6">
+      <TabsContent value="shift-coverage" className="mt-2 sm:mt-3 md:mt-4">
         <ShiftCoverageTab />
       </TabsContent>
       
-      <TabsContent value="equipment-health" className="mt-6">
+      <TabsContent value="equipment-health" className="mt-2 sm:mt-3 md:mt-4">
         <EquipmentHealthTab />
       </TabsContent>
       
-      <TabsContent value="areas" className="mt-6">
+      <TabsContent value="areas" className="mt-2 sm:mt-3 md:mt-4">
         <AreaManagementTab />
       </TabsContent>
       
-      <TabsContent value="maintenance" className="mt-6">
+      <TabsContent value="maintenance" className="mt-2 sm:mt-3 md:mt-4">
         <MaintenanceLogsTab />
       </TabsContent>
       
-      <TabsContent value="team-performance" className="mt-6">
+      <TabsContent value="team-performance" className="mt-2 sm:mt-3 md:mt-4">
         <TeamPerformanceTab />
       </TabsContent>
       
-      <TabsContent value="proposals" className="mt-6">
+      <TabsContent value="proposals" className="mt-2 sm:mt-3 md:mt-4">
         <ProposalsTab />
       </TabsContent>
       
-      <TabsContent value="rnd" className="mt-6">
+      <TabsContent value="rnd" className="mt-2 sm:mt-3 md:mt-4">
         <RndTab />
       </TabsContent>
       
-      <TabsContent value="consumables" className="mt-6">
+      <TabsContent value="consumables" className="mt-2 sm:mt-3 md:mt-4">
         <ConsumablesTab />
       </TabsContent>
       
-      <TabsContent value="suppliers" className="mt-6">
+      <TabsContent value="suppliers" className="mt-2 sm:mt-3 md:mt-4">
         <SuppliersTab />
       </TabsContent>
     </Tabs>
