@@ -4,10 +4,6 @@
   "installCommand": "npm install",
   "framework": "vite",
   "outputDirectory": "dist",
-  "env": {
-    "VITE_API_URL": "https://vault-pulse-api.vercel.app"
-  },
-  "envPrefix": "VITE_",
   "rewrites": [
     {
       "source": "/(.*)",
@@ -33,11 +29,5 @@
         }
       ]
     }
-  ],
-  "functions": {
-    "api/**/*.ts": {
-      "memory": 1024,
-      "maxDuration": 60
-    }
-  }
+  ]
 }
