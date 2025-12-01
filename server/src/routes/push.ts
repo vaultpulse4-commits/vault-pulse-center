@@ -1,17 +1,30 @@
 import { Router, Request, Response } from 'express';
 import prisma from '../prisma';
-import webPush from 'web-push';
+let webPush: any = null;
+
+try {
+  webPush = require('web-push');
+} catch (error) {
+  console.error('Failed to load web-push module:', error);
+}
 
 export const pushRouter = Router();
 
 // Configure web-push only if VAPID keys are available
-const hasVapidKeys = process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY;
-if (hasVapidKeys) {
-  webPush.setVapidDetails(
-    process.env.VAPID_SUBJECT || 'mailto:admin@vaultclub.com',
-    process.env.VAPID_PUBLIC_KEY!,
-    process.env.VAPID_PRIVATE_KEY!
-  );
+let vapidConfigured = false;
+function initializeVapid() {
+  if (!vapidConfigured && webPush && process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) {
+    try {
+      webPush.setVapidDetails(
+        process.env.VAPID_SUBJECT || 'mailto:admin@vaultclub.com',
+        process.env.VAPID_PUBLIC_KEY,
+        process.env.VAPID_PRIVATE_KEY
+      );
+      vapidConfigured = true;
+    } catch (error) {
+      console.log('VAPID keys not valid, push notifications disabled:', (error as any).message);
+    }
+  }
 }
 
 // Get VAPID public key
@@ -145,8 +158,11 @@ export async function sendPushNotification(
   }
 ) {
   try {
+    // Initialize VAPID if not already done
+    initializeVapid();
+    
     // Skip if VAPID keys not configured
-    if (!hasVapidKeys) {
+    if (!vapidConfigured) {
       console.log('Push notifications disabled: VAPID keys not configured');
       return { success: true, sent: 0 };
     }
@@ -174,6 +190,9 @@ export async function sendPushNotification(
     const results = await Promise.allSettled(
       subscriptions.map(async (sub) => {
         try {
+          if (!webPush) {
+            throw new Error('web-push module not available');
+          }
           await webPush.sendNotification(
             {
               endpoint: sub.endpoint,
