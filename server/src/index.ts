@@ -31,8 +31,23 @@ const httpServer = createServer(app);
 const PORT = process.env.PORT || 3001;
 
 // Middleware
+const getAllowedOrigins = () => {
+  const origins = [
+    'http://localhost:5173',
+    'http://localhost:3000',
+    'https://vault-pulse-center.vercel.app',
+  ];
+  
+  const frontendUrl = process.env.FRONTEND_URL;
+  if (frontendUrl && !origins.includes(frontendUrl)) {
+    origins.push(frontendUrl);
+  }
+  
+  return origins;
+};
+
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+  origin: getAllowedOrigins(),
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true
