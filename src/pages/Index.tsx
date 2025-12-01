@@ -3,6 +3,7 @@ import { CityToggle } from "@/components/vault/CityToggle";
 import { KPICards } from "@/components/vault/KPICards";
 import { VaultTabs } from "@/components/vault/VaultTabs";
 import { NotificationCenter } from "@/components/NotificationCenter";
+import { MobileNavigation } from "@/components/MobileNavigation";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -51,25 +52,33 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="border-b border-border/50 bg-gradient-card">
-        <div className="container mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-gradient-primary">
-                <Zap className="h-6 w-6 text-white" />
+      <header className="border-b border-border/50 bg-gradient-card sticky top-0 z-50">
+        <div className="container mx-auto px-3 sm:px-4 md:px-6 py-3 sm:py-4">
+          <div className="flex items-center justify-between gap-4">
+            {/* Mobile Menu */}
+            <div className="lg:hidden">
+              <MobileNavigation />
+            </div>
+
+            {/* Logo & Title */}
+            <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
+              <div className="p-1.5 sm:p-2 rounded-lg bg-gradient-primary flex-shrink-0">
+                <Zap className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
               </div>
-              <div>
-                <h1 className="text-2xl font-bold text-foreground">Vault Club Dashboard</h1>
-                <p className="text-sm text-muted-foreground">Technical Operations Control Center</p>
+              <div className="min-w-0">
+                <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-foreground truncate">Vault Club Dashboard</h1>
+                <p className="text-xs sm:text-sm text-muted-foreground hidden sm:block">Technical Operations Control Center</p>
               </div>
             </div>
-            <div className="flex items-center gap-4">
+
+            {/* Desktop User Menu - Hidden on Mobile */}
+            <div className="hidden lg:block">
               {user && (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="ghost" size="sm" className="flex items-center gap-2">
                       <User className="h-4 w-4" />
-                      <span>{user.name}</span>
+                      <span className="hidden md:inline">{user.name}</span>
                       <Badge variant="secondary" className="text-xs">{user.role}</Badge>
                     </Button>
                   </DropdownMenuTrigger>
@@ -107,31 +116,35 @@ const Index = () => {
                   </DropdownMenuContent>
                 </DropdownMenu>
               )}
+            </div>
+
+            {/* Right Side: Notifications & Status - Mobile Compact, Desktop Full */}
+            <div className="flex items-center gap-1 sm:gap-2 lg:gap-4 flex-shrink-0">
               <NotificationCenter />
-              <Badge variant="outline" className="flex items-center gap-2">
+              <Badge variant="outline" className="hidden sm:flex items-center gap-1 sm:gap-2 text-xs sm:text-sm">
                 <div className={`w-2 h-2 rounded-full ${connected ? 'bg-success' : 'bg-destructive'} animate-pulse`} />
-                {connected ? 'System Online' : 'Connecting...'}
+                <span className="hidden md:inline">{connected ? 'System Online' : 'Connecting...'}</span>
               </Badge>
               {unacknowledgedAlerts > 0 && (
-                <Badge variant="destructive" className="flex items-center gap-2">
+                <Badge variant="destructive" className="flex items-center gap-1 text-xs sm:text-sm">
                   <Activity className="h-3 w-3" />
-                  {unacknowledgedAlerts} Alerts
+                  <span className="hidden sm:inline">{unacknowledgedAlerts}</span>
                 </Badge>
               )}
-              <div className="text-right">
-                <p className="text-sm font-medium text-foreground">{getCurrentTime()}</p>
+              <div className="hidden md:text-right">
+                <p className="text-xs sm:text-sm font-medium text-foreground">{getCurrentTime()}</p>
                 <p className="text-xs text-muted-foreground">
-                  {selectedCity === 'jakarta' ? 'WIB (UTC+7)' : 'WITA (UTC+8)'}
+                  {selectedCity === 'jakarta' ? 'WIB' : 'WITA'}
                 </p>
               </div>
               <Button 
                 variant="outline" 
                 size="sm"
                 onClick={handleLogout}
-                className="flex items-center gap-2"
+                className="hidden md:flex items-center gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-3"
               >
                 <LogOut className="h-4 w-4" />
-                Logout
+                <span className="hidden lg:inline">Logout</span>
               </Button>
             </div>
           </div>
@@ -139,9 +152,9 @@ const Index = () => {
       </header>
 
       {/* Main Dashboard */}
-      <main className="container mx-auto px-6 py-6 space-y-6">
+      <main className="container mx-auto px-3 sm:px-4 md:px-6 py-4 sm:py-6 space-y-4 sm:space-y-6">
         {/* Top Controls */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-3 sm:gap-4">
           <WeekPicker />
           <CityToggle />
         </div>
