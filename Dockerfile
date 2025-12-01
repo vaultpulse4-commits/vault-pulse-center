@@ -8,7 +8,7 @@ COPY server/package*.json ./
 COPY server/prisma ./prisma/
 
 # Install dependencies (including dev)
-RUN npm ci
+RUN npm install
 
 # Copy source code
 COPY server/ ./
@@ -29,7 +29,7 @@ COPY server/package*.json ./
 COPY server/prisma ./prisma/
 
 # Install only production dependencies
-RUN npm ci --only=production
+RUN npm install --omit=dev
 
 # Copy built files from builder
 COPY --from=builder /app/server/dist ./dist
