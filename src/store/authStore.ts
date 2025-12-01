@@ -1,6 +1,11 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
+// Get API URL from environment or use hardcoded Railway URL
+const API_URL = import.meta.env.VITE_API_URL || 'https://vault-pulse-center-production.up.railway.app';
+
+console.log('[AUTH STORE] Using API URL:', API_URL);
+
 export interface User {
   id: string;
   email: string;
@@ -41,7 +46,7 @@ export const useAuthStore = create<AuthState>()(
       login: async (email: string, password: string) => {
         set({ isLoading: true });
         try {
-          const response = await fetch('http://localhost:3001/api/auth/login', {
+          const response = await fetch(`${API_URL}/api/auth/login`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -77,7 +82,7 @@ export const useAuthStore = create<AuthState>()(
         
         try {
           if (accessToken) {
-            await fetch('http://localhost:3001/api/auth/logout', {
+            await fetch(`${API_URL}/api/auth/logout`, {
               method: 'POST',
               headers: {
                 'Authorization': `Bearer ${accessToken}`,
@@ -112,7 +117,7 @@ export const useAuthStore = create<AuthState>()(
         }
 
         try {
-          const response = await fetch('http://localhost:3001/api/auth/refresh', {
+          const response = await fetch(`${API_URL}/api/auth/refresh`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -147,7 +152,7 @@ export const useAuthStore = create<AuthState>()(
         }
 
         try {
-          const response = await fetch('http://localhost:3001/api/auth/me', {
+          const response = await fetch(`${API_URL}/api/auth/me`, {
             method: 'GET',
             headers: {
               'Authorization': `Bearer ${accessToken}`,
