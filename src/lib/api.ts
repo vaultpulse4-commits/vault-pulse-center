@@ -197,7 +197,7 @@ export const api = {
   
   equipment: {
     getAll: (city?: string) => 
-      authFetch(`${API_URL}/api/equipment${city ? `?city=${city}` : ''}`).then(r => r.json()),
+      authFetch(`${API_URL}/api/equipment${city ? `?city=${city}` : ''}`).then(r => r.json()).then(data => data.data || data),
     getOne: (id: string) => 
       authFetch(`${API_URL}/api/equipment/${id}`).then(r => r.json()),
     create: (data: any) => 
@@ -278,7 +278,7 @@ export const api = {
   
   crew: {
     getAll: (city?: string, shift?: string) => 
-      authFetch(`${API_URL}/api/crew?${city ? `city=${city}` : ''}${shift ? `&shift=${shift}` : ''}`).then(r => r.json()),
+      authFetch(`${API_URL}/api/crew?${city ? `city=${city}` : ''}${shift ? `&shift=${shift}` : ''}`).then(r => r.json()).then(data => data.data || data),
     getOne: (id: string) => 
       authFetch(`${API_URL}/api/crew/${id}`).then(r => r.json()),
     create: (data: any) => 
@@ -297,7 +297,7 @@ export const api = {
   
   maintenance: {
     getAll: (city?: string) => 
-      authFetch(`${API_URL}/api/maintenance${city ? `?city=${city}` : ''}`).then(r => r.json()),
+      authFetch(`${API_URL}/api/maintenance${city ? `?city=${city}` : ''}`).then(r => r.json()).then(data => data.data || data),
     getOne: (id: string) => 
       authFetch(`${API_URL}/api/maintenance/${id}`).then(r => r.json()),
     create: (data: any) => 
@@ -333,7 +333,7 @@ export const api = {
   
   proposals: {
     getAll: (city?: string) => 
-      authFetch(`${API_URL}/api/proposals${city ? `?city=${city}` : ''}`).then(r => r.json()),
+      authFetch(`${API_URL}/api/proposals${city ? `?city=${city}` : ''}`).then(r => r.json()).then(data => data.data || data),
     getOne: (id: string) => 
       authFetch(`${API_URL}/api/proposals/${id}`).then(r => r.json()),
     create: (data: any) => 
@@ -375,7 +375,7 @@ export const api = {
       if (city) params.append('city', city);
       if (category) params.append('category', category);
       if (lowStock !== undefined) params.append('lowStock', String(lowStock));
-      return authFetch(`${API_URL}/api/consumables?${params.toString()}`).then(r => r.json());
+      return authFetch(`${API_URL}/api/consumables?${params.toString()}`).then(r => r.json()).then(data => data.data || data);
     },
     getOne: (id: string) => 
       authFetch(`${API_URL}/api/consumables/${id}`).then(r => r.json()),
