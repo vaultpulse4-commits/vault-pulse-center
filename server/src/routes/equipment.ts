@@ -7,7 +7,10 @@ export const equipmentRouter = Router();
 // Get all equipment (with optional city filter)
 equipmentRouter.get('/', async (req, res) => {
   try {
-    const { city } = req.query;
+    const { city, page = '1', limit = '50' } = req.query;
+    const pageNum = parseInt(page as string);
+    const limitNum = parseInt(limit as string);
+    
     const equipment = await prisma.equipment.findMany({
       where: city ? { city: city as any } : undefined,
       include: {
@@ -17,12 +20,28 @@ equipmentRouter.get('/', async (req, res) => {
           take: 5
         },
         inspections: {
-          orderBy: { date: 'desc' }
+          orderBy: { date: 'desc' },
+          take: 5
         }
       },
-      orderBy: { updatedAt: 'desc' }
+      orderBy: { updatedAt: 'desc' },
+      take: limitNum,
+      skip: (pageNum - 1) * limitNum
     });
-    res.json(equipment);
+    
+    const total = await prisma.equipment.count({
+      where: city ? { city: city as any } : undefined
+    });
+    
+    res.json({
+      data: equipment,
+      pagination: {
+        page: pageNum,
+        limit: limitNum,
+        total,
+        totalPages: Math.ceil(total / limitNum)
+      }
+    });
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch equipment' });
   }

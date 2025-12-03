@@ -27,6 +27,10 @@ consumableRouter.get('/', async (req, res) => {
       return res.json(consumables);
     }
     
+    const { page = '1', limit = '50' } = req.query;
+    const pageNum = parseInt(page as string);
+    const limitNum = parseInt(limit as string);
+    
     const consumables = await prisma.consumable.findMany({
       where: {
         ...(city && { city: city as any }),
@@ -50,10 +54,27 @@ consumableRouter.get('/', async (req, res) => {
           }
         }
       },
-      orderBy: { name: 'asc' }
+      orderBy: { name: 'asc' },
+      take: limitNum,
+      skip: (pageNum - 1) * limitNum
     });
     
-    res.json(consumables);
+    const total = await prisma.consumable.count({
+      where: {
+        ...(city && { city: city as any }),
+        ...(category && { category: category as string })
+      }
+    });
+    
+    res.json({
+      data: consumables,
+      pagination: {
+        page: pageNum,
+        limit: limitNum,
+        total,
+        totalPages: Math.ceil(total / limitNum)
+      }
+    });
   } catch (error: any) {
     console.error('Error fetching consumables:', error);
     res.status(500).json({ error: 'Failed to fetch consumables', details: error.message });

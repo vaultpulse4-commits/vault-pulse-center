@@ -26,6 +26,7 @@
     "@types/socket.io": "^3.0.1",
     "@types/web-push": "^3.6.4",
     "bcryptjs": "^3.0.3",
+    "connect-timeout": "^1.9.1",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "date-fns": "^4.1.0",

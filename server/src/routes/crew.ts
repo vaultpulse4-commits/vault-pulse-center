@@ -5,15 +5,36 @@ export const crewRouter = Router();
 
 crewRouter.get('/', async (req, res) => {
   try {
-    const { city, shift } = req.query;
+    const { city, shift, page = '1', limit = '50' } = req.query;
+    const pageNum = parseInt(page as string);
+    const limitNum = parseInt(limit as string);
+    
     const crew = await prisma.crewMember.findMany({
       where: {
         ...(city && { city: city as any }),
         ...(shift && { shift: shift as any })
       },
-      orderBy: { name: 'asc' }
+      orderBy: { name: 'asc' },
+      take: limitNum,
+      skip: (pageNum - 1) * limitNum
     });
-    res.json(crew);
+    
+    const total = await prisma.crewMember.count({
+      where: {
+        ...(city && { city: city as any }),
+        ...(shift && { shift: shift as any })
+      }
+    });
+    
+    res.json({
+      data: crew,
+      pagination: {
+        page: pageNum,
+        limit: limitNum,
+        total,
+        totalPages: Math.ceil(total / limitNum)
+      }
+    });
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch crew' });
   }

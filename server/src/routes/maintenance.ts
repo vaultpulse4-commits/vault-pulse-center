@@ -5,7 +5,10 @@ export const maintenanceRouter = Router();
 
 maintenanceRouter.get('/', async (req, res) => {
   try {
-    const { city } = req.query;
+    const { city, page = '1', limit = '100' } = req.query;
+    const pageNum = parseInt(page as string);
+    const limitNum = parseInt(limit as string);
+    
     const logs = await prisma.maintenanceLog.findMany({
       where: city ? { city: city as any } : undefined,
       include: {
@@ -22,9 +25,24 @@ maintenanceRouter.get('/', async (req, res) => {
           }
         }
       },
-      orderBy: { date: 'desc' }
+      orderBy: { date: 'desc' },
+      take: limitNum,
+      skip: (pageNum - 1) * limitNum
     });
-    res.json(logs);
+    
+    const total = await prisma.maintenanceLog.count({
+      where: city ? { city: city as any } : undefined
+    });
+    
+    res.json({
+      data: logs,
+      pagination: {
+        page: pageNum,
+        limit: limitNum,
+        total,
+        totalPages: Math.ceil(total / limitNum)
+      }
+    });
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch maintenance logs' });
   }

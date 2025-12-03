@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import cookieParser from 'cookie-parser';
+import timeout from 'connect-timeout';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
 import { equipmentRouter } from './routes/equipment';
@@ -79,6 +80,10 @@ const corsOptions = {
 app.use(cors(corsOptions));
 // Log allowed origins on startup
 console.log(`📋 CORS Allowed Origins: ${getAllowedOrigins().join(', ')}`);
+
+// Request timeout middleware (30 seconds)
+app.use(timeout('30s'));
+
 app.use(express.json({ limit: '10mb' })); // Increase payload limit for base64 images
 app.use(express.urlencoded({ limit: '10mb', extended: true }));
 app.use(cookieParser());

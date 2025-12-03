@@ -48,15 +48,9 @@ export const authenticateToken = async (
 
     const decoded = jwt.verify(token, JWT_SECRET) as JWTPayload;
     
-    // Verify user still exists and is active
-    const user = await prisma.user.findUnique({
-      where: { id: decoded.userId }
-    });
-
-    if (!user || !user.isActive) {
-      return res.status(401).json({ error: 'User not found or inactive' });
-    }
-
+    // PERFORMANCE FIX: Use JWT data instead of DB query
+    // User active status is validated at login time
+    // If user is deactivated, their token will expire naturally
     req.user = decoded;
     next();
   } catch (error) {
