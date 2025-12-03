@@ -17,6 +17,7 @@ import { useState, useEffect } from "react";
 import { api } from "@/lib/api";
 import { usePermission } from "@/lib/permissions";
 import { formatDate } from "@/lib/dateUtils";
+import { validateAndCompressImage } from "@/lib/imageCompression";
 
 // Helper to format status for display
 const formatStatus = (status: string) => {
@@ -487,36 +488,49 @@ export function MaintenanceLogsTab() {
     setNewLog({ ...newLog, parts: newLog.parts.filter((_, i) => i !== index) });
   };
 
-  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     
-    // Validate file type
-    if (!file.type.startsWith('image/')) {
+    // Show loading toast for large images
+    const loadingToast = file.size > 1024 * 1024 ? toast({
+      title: "Processing image...",
+      description: "Compressing image, please wait",
+    }) : null;
+
+    try {
+      // Validate and compress image automatically
+      const result = await validateAndCompressImage(file, 2);
+      
+      if (!result.success) {
+        toast({
+          title: "Error",
+          description: result.error || "Failed to process image",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // Show success message if image was compressed
+      if (result.wasCompressed) {
+        toast({
+          title: "Image compressed",
+          description: `Reduced from ${result.originalSize?.toFixed(2)}MB to ${result.compressedSize?.toFixed(2)}MB`,
+        });
+      }
+
+      setNewLog({ ...newLog, photo: result.data as string });
+    } catch (error) {
       toast({
         title: "Error",
-        description: "Please select an image file",
+        description: "Failed to process image",
         variant: "destructive"
       });
-      return;
+    } finally {
+      if (loadingToast) {
+        loadingToast.dismiss?.();
+      }
     }
-    
-    // Validate file size (max 2MB)
-    if (file.size > 2 * 1024 * 1024) {
-      toast({
-        title: "Error",
-        description: "Image size must be less than 2MB",
-        variant: "destructive"
-      });
-      return;
-    }
-    
-    // Convert to base64
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setNewLog({ ...newLog, photo: reader.result as string });
-    };
-    reader.readAsDataURL(file);
   };
 
   if (!canViewMaintenance) {
@@ -715,6 +729,7 @@ export function MaintenanceLogsTab() {
                       onChange={handlePhotoUpload}
                       className="cursor-pointer"
                     />
+                    <p className="text-xs text-muted-foreground">JPG/PNG/WEBP - Large images will be auto-compressed</p>
                     {newLog.photo && (
                       <div className="relative">
                         <img src={newLog.photo} alt="Preview" className="w-full h-48 object-cover rounded border" />

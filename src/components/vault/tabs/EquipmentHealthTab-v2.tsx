@@ -31,6 +31,7 @@ import { api } from "@/lib/api";
 import { usePermission } from "@/lib/permissions";
 import { useToast } from "@/hooks/use-toast";
 import { formatDate } from "@/lib/dateUtils";
+import { validateAndCompressImage } from "@/lib/imageCompression";
 
 type EquipmentStatus = 'Ready' | 'Degraded' | 'OOS' | 'In_Transit' | 'Spare';
 
@@ -279,41 +280,54 @@ export function EquipmentHealthTab() {
     }
   };
 
-  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>, isEdit = false) => {
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>, isEdit = false) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Validate file type
-    if (!file.type.startsWith('image/')) {
-      toast({
-        title: "Error",
-        description: "Please select an image file",
-        variant: "destructive"
-      });
-      return;
-    }
+    // Show loading toast for large images
+    const loadingToast = file.size > 1024 * 1024 ? toast({
+      title: "Processing image...",
+      description: "Compressing image, please wait",
+    }) : null;
 
-    // Validate file size (max 2MB)
-    if (file.size > 2 * 1024 * 1024) {
-      toast({
-        title: "Error",
-        description: "Image size must be less than 2MB",
-        variant: "destructive"
-      });
-      return;
-    }
+    try {
+      // Validate and compress image automatically
+      const result = await validateAndCompressImage(file, 2);
+      
+      if (!result.success) {
+        toast({
+          title: "Error",
+          description: result.error || "Failed to process image",
+          variant: "destructive"
+        });
+        return;
+      }
 
-    // Convert to base64
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      const base64String = reader.result as string;
+      // Show success message if image was compressed
+      if (result.wasCompressed) {
+        toast({
+          title: "Image compressed",
+          description: `Reduced from ${result.originalSize?.toFixed(2)}MB to ${result.compressedSize?.toFixed(2)}MB`,
+        });
+      }
+
+      const base64String = result.data as string;
       if (isEdit && editingEquipment) {
         setEditingEquipment({ ...editingEquipment, photo: base64String });
       } else {
         setNewEquipment({ ...newEquipment, photo: base64String });
       }
-    };
-    reader.readAsDataURL(file);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to process image",
+        variant: "destructive"
+      });
+    } finally {
+      if (loadingToast) {
+        loadingToast.dismiss?.();
+      }
+    }
   };
 
   const handleViewLogs = async (equipment: any) => {
@@ -511,7 +525,7 @@ export function EquipmentHealthTab() {
                       onChange={(e) => handlePhotoUpload(e)}
                       className="cursor-pointer"
                     />
-                    <p className="text-xs text-muted-foreground">Max 2MB, JPG/PNG/WEBP</p>
+                    <p className="text-xs text-muted-foreground">JPG/PNG/WEBP - Large images will be auto-compressed</p>
                   </div>
                   {newEquipment.photo && (
                     <div className="mt-2 relative w-32 h-32 rounded border">
@@ -770,7 +784,7 @@ export function EquipmentHealthTab() {
                     onChange={(e) => handlePhotoUpload(e, true)}
                     className="cursor-pointer"
                   />
-                  <p className="text-xs text-muted-foreground">Max 2MB, JPG/PNG/WEBP</p>
+                  <p className="text-xs text-muted-foreground">JPG/PNG/WEBP - Large images will be auto-compressed</p>
                 </div>
                 {editingEquipment.photo && (
                   <div className="mt-2 relative w-32 h-32 rounded border">
