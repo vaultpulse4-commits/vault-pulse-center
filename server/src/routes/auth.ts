@@ -24,6 +24,12 @@ const registerValidation = [
   body('cities').isArray().notEmpty()
 ];
 
+const signupValidation = [
+  body('email').isEmail().normalizeEmail(),
+  body('password').isLength({ min: 8 }),
+  body('name').trim().isLength({ min: 2 })
+];
+
 const loginValidation = [
   body('email').isEmail().normalizeEmail(),
   body('password').notEmpty()
@@ -99,7 +105,7 @@ authRouter.post(
 // POST /auth/signup - Public user registration (no auth required)
 authRouter.post(
   '/signup',
-  registerValidation,
+  signupValidation,
   async (req: Request, res: Response) => {
     try {
       const errors = validationResult(req);
