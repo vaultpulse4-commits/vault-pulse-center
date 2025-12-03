@@ -7,6 +7,7 @@ import { WebSocketProvider } from "@/contexts/WebSocketContext";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import Login from "./pages/Login";
+import Register from "./pages/Register";
 import UserProfile from "./pages/UserProfile";
 import UserManagement from "./pages/UserManagement";
 import PermissionMatrix from "./pages/PermissionMatrix";
@@ -32,6 +33,7 @@ const App = () => (
         <BrowserRouter>
           <Routes>
             <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
             <Route element={<ProtectedRoute />}>
               <Route path="/" element={<Index />} />
               <Route path="/profile" element={<UserProfile />} />

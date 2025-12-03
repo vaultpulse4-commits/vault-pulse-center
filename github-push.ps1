@@ -46,7 +46,7 @@ Write-Host "  SUCCESS! Code pushed to GitHub!" -ForegroundColor Green
 Write-Host "================================================================" -ForegroundColor Green
 Write-Host ""
 Write-Host "Verify here:" -ForegroundColor Cyan
-Write-Host "https://github.com/digimom462-cell/vault-pulse-center" -ForegroundColor Cyan
+Write-Host "https://github.com/vaultpulse4-commits/vault-pulse-center" -ForegroundColor Cyan
 Write-Host ""
 Write-Host "Next step: Login to DomaiNesia cPanel and follow" -ForegroundColor Yellow
 Write-Host "DOMAINESIA_OPTIMAL_STRATEGY.md" -ForegroundColor Yellow

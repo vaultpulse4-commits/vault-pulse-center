@@ -96,6 +96,89 @@ authRouter.post(
   }
 );
 
+// POST /auth/signup - Public user registration (no auth required)
+authRouter.post(
+  '/signup',
+  registerValidation,
+  async (req: Request, res: Response) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() });
+      }
+
+      const { email, password, name } = req.body;
+
+      // Check password strength
+      const passwordCheck = validatePasswordStrength(password);
+      if (!passwordCheck.valid) {
+        return res.status(400).json({ 
+          error: 'Weak password', 
+          details: passwordCheck.errors 
+        });
+      }
+
+      // Check if user exists
+      const existingUser = await prisma.user.findUnique({
+        where: { email }
+      });
+
+      if (existingUser) {
+        return res.status(409).json({ error: 'Email already registered' });
+      }
+
+      // Hash password
+      const hashedPassword = await hashPassword(password);
+
+      // Create user with default operator role and jakarta city
+      const user = await prisma.user.create({
+        data: {
+          email,
+          password: hashedPassword,
+          name,
+          role: 'operator', // Default role for self-registration
+          cities: ['jakarta'] // Default city
+        },
+        select: {
+          id: true,
+          email: true,
+          name: true,
+          role: true,
+          cities: true,
+          createdAt: true
+        }
+      });
+
+      // Generate tokens for auto-login after signup
+      const tokenPayload: JWTPayload = {
+        userId: user.id,
+        email: user.email,
+        role: user.role,
+        cities: user.cities
+      };
+
+      const accessToken = generateAccessToken(tokenPayload);
+      const refreshToken = generateRefreshToken(tokenPayload);
+
+      // Save refresh token
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { refreshToken }
+      });
+
+      res.status(201).json({ 
+        message: 'Registration successful',
+        accessToken,
+        refreshToken,
+        user
+      });
+    } catch (error) {
+      console.error('Signup error:', error);
+      res.status(500).json({ error: 'Failed to register' });
+    }
+  }
+);
+
 // POST /auth/login - Login user
 authRouter.post('/login', loginValidation, async (req: Request, res: Response) => {
   try {

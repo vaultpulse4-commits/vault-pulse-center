@@ -98,6 +98,19 @@ export default function Login() {
             </Button>
           </form>
 
+          {/* Sign Up Link */}
+          <div className="mt-6 text-center">
+            <p className="text-sm text-muted-foreground">
+              Don't have an account?{' '}
+              <a 
+                href="/register" 
+                className="font-medium text-primary hover:underline"
+              >
+                Sign up
+              </a>
+            </p>
+          </div>
+
           {/* Demo Accounts */}
           <div className="mt-6 border-t pt-6">
             <p className="text-sm text-muted-foreground mb-3">Demo Accounts:</p>

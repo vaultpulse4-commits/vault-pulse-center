@@ -134,6 +134,15 @@ export const api = {
         body: JSON.stringify({ refreshToken })
       }).then(r => r.json()),
     
+    signup: (data: { name: string; email: string; password: string }) =>
+      fetch(`${API_URL}/api/auth/signup`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data)
+      }).then(r => r.json()),
+    
     register: (data: any) =>
       authFetch(`${API_URL}/api/auth/register`, {
         method: 'POST',
