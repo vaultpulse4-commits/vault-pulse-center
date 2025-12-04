@@ -47,19 +47,75 @@ router.get('/financial', authenticateToken, async (req, res) => {
       }
     });
 
-    // Calculate financial metrics for each event
+    // Get real cost data from maintenance, proposals, consumables, and R&D
+    // Query all relevant data for the date range
+    const [maintenanceLogs, approvedProposals, consumablesMovements, rndProjects] = await Promise.all([
+      // Maintenance costs
+      prisma.maintenanceLog.findMany({
+        where: {
+          city: city as City,
+          date: { gte: startDate, lte: now }
+        }
+      }),
+      // Approved proposals (approved budget)
+      prisma.proposal.findMany({
+        where: {
+          city: city as City,
+          status: 'Approved',
+          estimateApproved: true,
+          createdAt: { gte: startDate, lte: now }
+        }
+      }),
+      // Consumables usage costs
+      prisma.stockMovement.findMany({
+        where: {
+          type: 'Usage',
+          createdAt: { gte: startDate, lte: now },
+          consumable: {
+            city: city as City
+          }
+        },
+        include: {
+          consumable: true
+        }
+      }),
+      // R&D project costs
+      prisma.rndProject.findMany({
+        where: {
+          city: city as City,
+          createdAt: { gte: startDate, lte: now }
+        }
+      })
+    ]);
+
+    // Calculate total costs from real data
+    const totalMaintenanceCost = maintenanceLogs.reduce((sum: number, log: any) => sum + (log.cost || 0), 0);
+    const totalProposalCost = approvedProposals.reduce((sum: number, proposal: any) => sum + (proposal.estimate || 0), 0);
+    const totalConsumablesCost = consumablesMovements.reduce((sum: number, movement: any) => {
+      return sum + (movement.totalCost || 0);
+    }, 0);
+    const totalRnDCost = rndProjects.reduce((sum: number, project: any) => sum + (project.budget || 0), 0);
+
+    // Calculate financial metrics for each event with proportional cost allocation
+    const totalOperationalCost = totalMaintenanceCost + totalProposalCost + totalConsumablesCost + totalRnDCost;
+    
     const financialData = events.map((event: any) => {
-      // Mock cost calculation - replace with actual cost data from your database
-      const equipmentCost = Math.random() * 30000000;
-      const crewCost = Math.random() * 40000000;
-      const venueCost = Math.random() * 50000000;
-      const marketingCost = Math.random() * 20000000;
-      const otherCost = Math.random() * 10000000;
+      // Allocate costs proportionally based on event count (simplified allocation)
+      const eventCostShare = events.length > 0 ? totalOperationalCost / events.length : 0;
       
-      const totalCost = equipmentCost + crewCost + venueCost + marketingCost + otherCost;
-      const revenue = totalCost * (1 + Math.random() * 0.5); // 0-50% profit margin
+      // Break down costs by category
+      const maintenanceCost = events.length > 0 ? totalMaintenanceCost / events.length : 0;
+      const proposalCost = events.length > 0 ? totalProposalCost / events.length : 0;
+      const consumablesCost = events.length > 0 ? totalConsumablesCost / events.length : 0;
+      const rndCost = events.length > 0 ? totalRnDCost / events.length : 0;
+      
+      // Estimate revenue (120-150% of total cost as revenue)
+      const revenueMultiplier = 1.2 + (Math.random() * 0.3); // 120-150%
+      const revenue = eventCostShare * revenueMultiplier;
+      
+      const totalCost = eventCostShare;
       const profit = revenue - totalCost;
-      const roi = (profit / totalCost) * 100;
+      const roi = totalCost > 0 ? (profit / totalCost) * 100 : 0;
 
       return {
         id: event.id,
@@ -67,11 +123,14 @@ router.get('/financial', authenticateToken, async (req, res) => {
         date: event.date,
         revenue,
         costs: {
-          equipment: equipmentCost,
-          crew: crewCost,
-          venue: venueCost,
-          marketing: marketingCost,
-          other: otherCost
+          equipment: maintenanceCost, // Equipment maintenance costs
+          crew: proposalCost * 0.3, // Portion of proposals for crew
+          venue: proposalCost * 0.4, // Portion of proposals for venue
+          marketing: proposalCost * 0.3, // Portion of proposals for marketing
+          consumables: consumablesCost, // Consumables usage
+          rnd: rndCost, // R&D investment
+          maintenance: maintenanceCost, // Maintenance costs
+          other: consumablesCost + rndCost // Combined other costs
         },
         totalCost,
         profit,
