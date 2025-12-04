@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { format, startOfWeek, endOfWeek, addWeeks, subWeeks, isThisWeek } from "date-fns";
+import type { DateRange } from "react-day-picker";
 
 type WeekMode = 'current' | 'custom';
 
@@ -23,9 +24,8 @@ export function WeekPicker() {
   const [currentWeekStart, setCurrentWeekStart] = useState<Date>(startOfWeek(new Date(), { weekStartsOn: 1 }));
   const [currentWeekEnd, setCurrentWeekEnd] = useState<Date>(endOfWeek(new Date(), { weekStartsOn: 1 }));
   
-  // Custom mode
-  const [customStartDate, setCustomStartDate] = useState<Date>();
-  const [customEndDate, setCustomEndDate] = useState<Date>();
+  // Custom mode - using DateRange for range picker
+  const [customDateRange, setCustomDateRange] = useState<DateRange | undefined>();
   
   // Update current week automatically every day
   useEffect(() => {
@@ -61,8 +61,8 @@ export function WeekPicker() {
       };
     } else {
       return {
-        start: customStartDate || currentWeekStart,
-        end: customEndDate || currentWeekEnd
+        start: customDateRange?.from || currentWeekStart,
+        end: customDateRange?.to || currentWeekEnd
       };
     }
   };
@@ -203,52 +203,28 @@ export function WeekPicker() {
                     className="w-full sm:w-auto justify-start text-xs sm:text-sm h-7 sm:h-8 px-2 sm:px-3"
                   >
                     <CalendarRange className="h-3 w-3 sm:h-4 sm:w-4 mr-2 flex-shrink-0" />
-                    {customStartDate && customEndDate ? (
-                      `${format(customStartDate, 'MMM d')} - ${format(customEndDate, 'MMM d, yyyy')}`
+                    {customDateRange?.from ? (
+                      customDateRange.to ? (
+                        `${format(customDateRange.from, 'MMM d')} - ${format(customDateRange.to, 'MMM d, yyyy')}`
+                      ) : (
+                        format(customDateRange.from, 'MMM d, yyyy')
+                      )
                     ) : (
                       'Select date range'
                     )}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="start">
-                  <div className="p-3 space-y-3">
-                    <div className="space-y-2">
-                      <label className="text-xs font-medium">Start Date</label>
-                      <Calendar
-                        mode="single"
-                        selected={customStartDate}
-                        onSelect={(date) => {
-                          if (date) {
-                            setCustomStartDate(date);
-                            // Reset end date if it's before new start date
-                            if (customEndDate && date > customEndDate) {
-                              setCustomEndDate(undefined);
-                            }
-                          }
-                        }}
-                        disabled={(date) => date > new Date()}
-                        initialFocus
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-xs font-medium">End Date</label>
-                      <Calendar
-                        mode="single"
-                        selected={customEndDate}
-                        onSelect={(date) => {
-                          if (date) {
-                            setCustomEndDate(date);
-                          }
-                        }}
-                        disabled={(date) => 
-                          date > new Date() || 
-                          (customStartDate ? date < customStartDate : false)
-                        }
-                      />
-                    </div>
-                    <div className="pt-2 border-t text-xs text-muted-foreground text-center">
-                      Select any date range for your custom report
-                    </div>
+                  <Calendar
+                    mode="range"
+                    selected={customDateRange}
+                    onSelect={setCustomDateRange}
+                    disabled={(date) => date > new Date()}
+                    numberOfMonths={2}
+                    initialFocus
+                  />
+                  <div className="p-3 border-t text-xs text-muted-foreground text-center">
+                    Select start date, then end date for your custom range
                   </div>
                 </PopoverContent>
               </Popover>
