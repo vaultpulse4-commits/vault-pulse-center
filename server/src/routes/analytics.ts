@@ -96,18 +96,54 @@ router.get('/financial', authenticateToken, async (req, res) => {
     }, 0);
     const totalRnDCost = rndProjects.reduce((sum: number, project: any) => sum + (project.budget || 0), 0);
 
+    // Debug logging
+    console.log('Financial Analytics Debug:', {
+      eventsCount: events.length,
+      maintenanceLogs: maintenanceLogs.length,
+      totalMaintenanceCost,
+      approvedProposals: approvedProposals.length,
+      totalProposalCost,
+      consumablesMovements: consumablesMovements.length,
+      totalConsumablesCost,
+      rndProjects: rndProjects.length,
+      totalRnDCost,
+      dateRange: { startDate, endDate: now }
+    });
+
     // Calculate financial metrics for each event with proportional cost allocation
     const totalOperationalCost = totalMaintenanceCost + totalProposalCost + totalConsumablesCost + totalRnDCost;
     
-    const financialData = events.map((event: any) => {
+    // If no events but have operational costs, create synthetic events for visualization
+    let eventsToProcess: any[] = events;
+    if (events.length === 0 && totalOperationalCost > 0) {
+      console.log('No events found but have operational costs. Creating synthetic events...');
+      // Create synthetic monthly events based on operational data
+      const syntheticEvents: any[] = [];
+      const monthsInRange = Math.max(1, Math.ceil((now.getTime() - startDate.getTime()) / (30 * 24 * 60 * 60 * 1000)));
+      
+      for (let i = 0; i < Math.min(monthsInRange, 3); i++) {
+        const eventDate = new Date(startDate);
+        eventDate.setMonth(eventDate.getMonth() + i);
+        syntheticEvents.push({
+          id: `synthetic-${i}`,
+          artist: `Operational Period ${i + 1}`,
+          date: eventDate,
+          city: city
+        });
+      }
+      eventsToProcess = syntheticEvents;
+      console.log(`Created ${syntheticEvents.length} synthetic events`);
+    }
+    
+    const financialData = eventsToProcess.map((event: any) => {
       // Allocate costs proportionally based on event count (simplified allocation)
-      const eventCostShare = events.length > 0 ? totalOperationalCost / events.length : 0;
+      const eventCostShare = eventsToProcess.length > 0 ? totalOperationalCost / eventsToProcess.length : 0;
       
       // Break down costs by category
-      const maintenanceCost = events.length > 0 ? totalMaintenanceCost / events.length : 0;
-      const proposalCost = events.length > 0 ? totalProposalCost / events.length : 0;
-      const consumablesCost = events.length > 0 ? totalConsumablesCost / events.length : 0;
-      const rndCost = events.length > 0 ? totalRnDCost / events.length : 0;
+      const maintenanceCost = eventsToProcess.length > 0 ? totalMaintenanceCost / eventsToProcess.length : 0;
+      const proposalCost = eventsToProcess.length > 0 ? totalProposalCost / eventsToProcess.length : 0;
+      const consumablesCost = eventsToProcess.length > 0 ? totalConsumablesCost / eventsToProcess.length : 0;
+      const rndCost = eventsToProcess.length > 0 ? totalRnDCost / eventsToProcess.length : 0;
       
       // Estimate revenue (120-150% of total cost as revenue)
       const revenueMultiplier = 1.2 + (Math.random() * 0.3); // 120-150%
