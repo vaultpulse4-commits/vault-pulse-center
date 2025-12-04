@@ -194,7 +194,7 @@ export function WeekPicker() {
           {/* Custom Range Mode */}
           <TabsContent value="custom" className="mt-0 space-y-2">
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3">
-              {/* Date Picker */}
+              {/* Date Range Picker */}
               <Popover>
                 <PopoverTrigger asChild>
                   <Button 
@@ -203,26 +203,51 @@ export function WeekPicker() {
                     className="w-full sm:w-auto justify-start text-xs sm:text-sm h-7 sm:h-8 px-2 sm:px-3"
                   >
                     <CalendarRange className="h-3 w-3 sm:h-4 sm:w-4 mr-2 flex-shrink-0" />
-                    {format(activeStart, 'MMM d')} - {format(activeEnd, 'MMM d, yyyy')}
+                    {customStartDate && customEndDate ? (
+                      `${format(customStartDate, 'MMM d')} - ${format(customEndDate, 'MMM d, yyyy')}`
+                    ) : (
+                      'Select date range'
+                    )}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="start">
-                  <div className="p-3">
-                    <Calendar
-                      mode="single"
-                      selected={customStartDate}
-                      onSelect={(date) => {
-                        if (date) {
-                          const weekStart = startOfWeek(date, { weekStartsOn: 1 });
-                          const weekEnd = endOfWeek(date, { weekStartsOn: 1 });
-                          setCustomStartDate(weekStart);
-                          setCustomEndDate(weekEnd);
+                  <div className="p-3 space-y-3">
+                    <div className="space-y-2">
+                      <label className="text-xs font-medium">Start Date</label>
+                      <Calendar
+                        mode="single"
+                        selected={customStartDate}
+                        onSelect={(date) => {
+                          if (date) {
+                            setCustomStartDate(date);
+                            // Reset end date if it's before new start date
+                            if (customEndDate && date > customEndDate) {
+                              setCustomEndDate(undefined);
+                            }
+                          }
+                        }}
+                        disabled={(date) => date > new Date()}
+                        initialFocus
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-xs font-medium">End Date</label>
+                      <Calendar
+                        mode="single"
+                        selected={customEndDate}
+                        onSelect={(date) => {
+                          if (date) {
+                            setCustomEndDate(date);
+                          }
+                        }}
+                        disabled={(date) => 
+                          date > new Date() || 
+                          (customStartDate ? date < customStartDate : false)
                         }
-                      }}
-                      initialFocus
-                    />
-                    <div className="mt-2 pt-2 border-t text-xs text-muted-foreground text-center">
-                      Click any date to select its full week (Mon-Sun)
+                      />
+                    </div>
+                    <div className="pt-2 border-t text-xs text-muted-foreground text-center">
+                      Select any date range for your custom report
                     </div>
                   </div>
                 </PopoverContent>
