@@ -1,51 +1,79 @@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useVaultStore } from "@/store/vaultStore";
-import { ChevronLeft, ChevronRight, Calendar, Download } from "lucide-react";
+import { ChevronLeft, ChevronRight, Calendar, Download, CalendarRange } from "lucide-react";
 import { api } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar as CalendarComponent } from "@/components/ui/calendar";
+import { format, startOfWeek, endOfWeek, addWeeks, subWeeks, isThisWeek } from "date-fns";
+
+type WeekMode = 'current' | 'custom';
 
 export function WeekPicker() {
   const { selectedWeek, setSelectedWeek, selectedCity } = useVaultStore();
   const { toast } = useToast();
   const [isGeneratingReport, setIsGeneratingReport] = useState(false);
+  const [weekMode, setWeekMode] = useState<WeekMode>('current');
   
-  const getWeekDates = (year: number, month: number, week: number) => {
-    // Calculate first day of the week (Sunday)
-    const startDate = new Date(year, month - 1, (week - 1) * 7 + 1);
-    const endDate = new Date(startDate);
-    endDate.setDate(startDate.getDate() + 6);
-    
-    return {
-      start: startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-      end: endDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+  // Current week auto mode (Monday to Sunday)
+  const [currentWeekStart, setCurrentWeekStart] = useState<Date>(startOfWeek(new Date(), { weekStartsOn: 1 }));
+  const [currentWeekEnd, setCurrentWeekEnd] = useState<Date>(endOfWeek(new Date(), { weekStartsOn: 1 }));
+  
+  // Custom mode
+  const [customStartDate, setCustomStartDate] = useState<Date>();
+  const [customEndDate, setCustomEndDate] = useState<Date>();
+  
+  // Update current week automatically every day
+  useEffect(() => {
+    const updateCurrentWeek = () => {
+      const now = new Date();
+      setCurrentWeekStart(startOfWeek(now, { weekStartsOn: 1 }));
+      setCurrentWeekEnd(endOfWeek(now, { weekStartsOn: 1 }));
     };
-  };
-
-  const navigateWeek = (direction: 'prev' | 'next') => {
-    const { year, month, week } = selectedWeek;
+    
+    updateCurrentWeek();
+    const interval = setInterval(updateCurrentWeek, 60000); // Check every minute
+    
+    return () => clearInterval(interval);
+  }, []);
+  
+  // Quick week navigation in current mode
+  const navigateCurrentWeek = (direction: 'prev' | 'next') => {
     if (direction === 'next') {
-      if (week >= 4) {
-        setSelectedWeek({ year, month: month + 1, week: 1 });
-      } else {
-        setSelectedWeek({ year, month, week: week + 1 });
-      }
+      setCurrentWeekStart(addWeeks(currentWeekStart, 1));
+      setCurrentWeekEnd(addWeeks(currentWeekEnd, 1));
     } else {
-      if (week <= 1) {
-        setSelectedWeek({ year, month: month - 1, week: 4 });
-      } else {
-        setSelectedWeek({ year, month, week: week - 1 });
-      }
+      setCurrentWeekStart(subWeeks(currentWeekStart, 1));
+      setCurrentWeekEnd(subWeeks(currentWeekEnd, 1));
     }
   };
-
-  const { start, end } = getWeekDates(selectedWeek.year, selectedWeek.month, selectedWeek.week);
-  const monthName = new Date(selectedWeek.year, selectedWeek.month - 1).toLocaleDateString('en-US', { month: 'long' });
+  
+  // Get active date range based on mode
+  const getActiveDateRange = () => {
+    if (weekMode === 'current') {
+      return {
+        start: currentWeekStart,
+        end: currentWeekEnd
+      };
+    } else {
+      return {
+        start: customStartDate || currentWeekStart,
+        end: customEndDate || currentWeekEnd
+      };
+    }
+  };
+  
+  const { start: startDate, end: endDate } = getActiveDateRange();
+  const isCurrentWeek = isThisWeek(startDate, { weekStartsOn: 0 });
 
   const generateWeeklyReport = async () => {
     if (isGeneratingReport) return;
+    
+    const { start, end } = getActiveDateRange();
     
     setIsGeneratingReport(true);
     
@@ -56,16 +84,10 @@ export function WeekPicker() {
         duration: 3000
       });
 
-      // Calculate actual date range for the selected week
-      const startDate = new Date(selectedWeek.year, selectedWeek.month - 1, (selectedWeek.week - 1) * 7 + 1);
-      const endDate = new Date(startDate);
-      endDate.setDate(startDate.getDate() + 6);
-      endDate.setHours(23, 59, 59, 999); // End of day
-
       const reportData = {
         city: selectedCity,
-        startDate: startDate.toISOString(),
-        endDate: endDate.toISOString()
+        startDate: start.toISOString(),
+        endDate: new Date(end.getTime() + 86399999).toISOString() // End of day
       };
 
       console.log('Sending weekly report request:', reportData);
@@ -73,7 +95,7 @@ export function WeekPicker() {
       
       toast({
         title: "Report Generated",
-        description: `Weekly report for ${monthName} Week ${selectedWeek.week} has been downloaded`,
+        description: `Weekly report (${format(start, 'MMM d')} - ${format(end, 'MMM d')}) downloaded`,
         duration: 4000
       });
     } catch (error: any) {
@@ -89,64 +111,145 @@ export function WeekPicker() {
     }
   };
 
+  const { start: activeStart, end: activeEnd } = getActiveDateRange();
+  const isCurrentWeekActive = isThisWeek(activeStart, { weekStartsOn: 1 });
+
   return (
     <Card className="bg-gradient-card border-border/50">
       <div className="p-3 sm:p-4 md:p-6 space-y-3 sm:space-y-4">
-        {/* Header */}
+        {/* Header with Mode Tabs */}
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2">
             <Calendar className="h-4 w-4 sm:h-5 sm:w-5 text-primary flex-shrink-0" />
             <span className="text-xs sm:text-sm font-medium text-muted-foreground">Week Picker</span>
           </div>
-          <Badge variant="secondary" className="text-xs">
-            Week {selectedWeek.week}
-          </Badge>
+          <Tabs value={weekMode} onValueChange={(v) => setWeekMode(v as WeekMode)}>
+            <TabsList className="h-7">
+              <TabsTrigger value="current" className="text-xs h-6">Current Week</TabsTrigger>
+              <TabsTrigger value="custom" className="text-xs h-6">Custom Range</TabsTrigger>
+            </TabsList>
+          </Tabs>
         </div>
 
-        {/* Navigation Controls */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3">
-          {/* Month/Year */}
-          <div className="text-xs sm:text-sm font-medium whitespace-nowrap">
-            {monthName} {selectedWeek.year}
-          </div>
+        <Tabs value={weekMode} onValueChange={(v) => setWeekMode(v as WeekMode)}>
+          {/* Current Week Mode */}
+          <TabsContent value="current" className="mt-0 space-y-2">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3">
+              {/* Navigation Buttons */}
+              <div className="flex items-center gap-1 sm:gap-2 w-full sm:w-auto">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => navigateCurrentWeek(-1)}
+                  disabled={isGeneratingReport}
+                  className="h-7 w-7 sm:h-8 sm:w-8 p-0 flex-shrink-0"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                
+                <div className="flex-1 sm:flex-none text-center text-xs sm:text-sm text-muted-foreground bg-muted/30 px-2 sm:px-3 py-1 rounded whitespace-nowrap">
+                  {format(activeStart, 'MMM d')} - {format(activeEnd, 'MMM d, yyyy')}
+                  {isCurrentWeekActive && (
+                    <span className="ml-2 px-1.5 py-0.5 rounded-full bg-primary/10 text-primary text-xs font-medium">
+                      Now
+                    </span>
+                  )}
+                </div>
+                
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => navigateCurrentWeek(1)}
+                  disabled={isGeneratingReport || isCurrentWeekActive}
+                  className="h-7 w-7 sm:h-8 sm:w-8 p-0 flex-shrink-0"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
 
-          {/* Navigation Buttons */}
-          <div className="flex items-center gap-1 sm:gap-2 w-full sm:w-auto">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => navigateWeek('prev')}
-              className="h-7 w-7 sm:h-8 sm:w-8 p-0 flex-shrink-0"
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            
-            <div className="flex-1 sm:flex-none text-center text-xs sm:text-sm text-muted-foreground bg-muted/30 px-2 sm:px-3 py-1 rounded whitespace-nowrap">
-              {start} - {end}
+              {/* Generate Report Button */}
+              <Button
+                onClick={generateWeeklyReport}
+                disabled={isGeneratingReport}
+                size="sm"
+                className="w-full sm:w-auto text-xs sm:text-sm px-2 sm:px-3 h-7 sm:h-8 ml-auto sm:ml-0"
+              >
+                {isGeneratingReport ? (
+                  <>
+                    <div className="h-3 w-3 sm:h-4 sm:w-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-1" />
+                    <span className="hidden sm:inline">Generating...</span>
+                    <span className="sm:hidden">Wait</span>
+                  </>
+                ) : (
+                  <>
+                    <Download className="h-3 w-3 sm:h-4 sm:w-4 mr-1 flex-shrink-0" />
+                    <span className="hidden sm:inline">Weekly Report</span>
+                    <span className="sm:hidden">Report</span>
+                  </>
+                )}
+              </Button>
             </div>
-            
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => navigateWeek('next')}
-              className="h-7 w-7 sm:h-8 sm:w-8 p-0 flex-shrink-0"
-            >
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-          </div>
+          </TabsContent>
 
-          {/* Generate Report Button */}
-          <Button
-            onClick={generateWeeklyReport}
-            disabled={isGeneratingReport}
-            size="sm"
-            className="w-full sm:w-auto text-xs sm:text-sm px-2 sm:px-3 h-7 sm:h-8 ml-auto sm:ml-0"
-          >
-            <Download className="h-3 w-3 sm:h-4 sm:w-4 mr-1 flex-shrink-0" />
-            <span className="hidden sm:inline">Weekly Report</span>
-            <span className="sm:hidden">Report</span>
-          </Button>
-        </div>
+          {/* Custom Range Mode */}
+          <TabsContent value="custom" className="mt-0 space-y-2">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3">
+              {/* Date Picker */}
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="w-full sm:w-auto justify-start text-xs sm:text-sm h-7 sm:h-8 px-2 sm:px-3"
+                  >
+                    <CalendarRange className="h-3 w-3 sm:h-4 sm:w-4 mr-2 flex-shrink-0" />
+                    {format(activeStart, 'MMM d')} - {format(activeEnd, 'MMM d, yyyy')}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={customStartDate}
+                    onSelect={(date) => {
+                      if (date) {
+                        const weekStart = startOfWeek(date, { weekStartsOn: 1 });
+                        const weekEnd = endOfWeek(date, { weekStartsOn: 1 });
+                        setCustomStartDate(weekStart);
+                        setCustomEndDate(weekEnd);
+                      }
+                    }}
+                    initialFocus
+                  />
+                  <div className="p-3 border-t text-xs text-muted-foreground">
+                    Click any date to select its full week (Mon-Sun)
+                  </div>
+                </PopoverContent>
+              </Popover>
+
+              {/* Generate Report Button */}
+              <Button
+                onClick={generateWeeklyReport}
+                disabled={isGeneratingReport}
+                size="sm"
+                className="w-full sm:w-auto text-xs sm:text-sm px-2 sm:px-3 h-7 sm:h-8 ml-auto sm:ml-0"
+              >
+                {isGeneratingReport ? (
+                  <>
+                    <div className="h-3 w-3 sm:h-4 sm:w-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-1" />
+                    <span className="hidden sm:inline">Generating...</span>
+                    <span className="sm:hidden">Wait</span>
+                  </>
+                ) : (
+                  <>
+                    <Download className="h-3 w-3 sm:h-4 sm:w-4 mr-1 flex-shrink-0" />
+                    <span className="hidden sm:inline">Weekly Report</span>
+                    <span className="sm:hidden">Report</span>
+                  </>
+                )}
+              </Button>
+            </div>
+          </TabsContent>
+        </Tabs>
       </div>
     </Card>
   );
