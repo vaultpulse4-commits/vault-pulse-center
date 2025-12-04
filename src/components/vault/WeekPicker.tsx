@@ -207,21 +207,23 @@ export function WeekPicker() {
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={customStartDate}
-                    onSelect={(date) => {
-                      if (date) {
-                        const weekStart = startOfWeek(date, { weekStartsOn: 1 });
-                        const weekEnd = endOfWeek(date, { weekStartsOn: 1 });
-                        setCustomStartDate(weekStart);
-                        setCustomEndDate(weekEnd);
-                      }
-                    }}
-                    initialFocus
-                  />
-                  <div className="p-3 border-t text-xs text-muted-foreground">
-                    Click any date to select its full week (Mon-Sun)
+                  <div className="p-3">
+                    <Calendar
+                      mode="single"
+                      selected={customStartDate}
+                      onSelect={(date) => {
+                        if (date) {
+                          const weekStart = startOfWeek(date, { weekStartsOn: 1 });
+                          const weekEnd = endOfWeek(date, { weekStartsOn: 1 });
+                          setCustomStartDate(weekStart);
+                          setCustomEndDate(weekEnd);
+                        }
+                      }}
+                      initialFocus
+                    />
+                    <div className="mt-2 pt-2 border-t text-xs text-muted-foreground text-center">
+                      Click any date to select its full week (Mon-Sun)
+                    </div>
                   </div>
                 </PopoverContent>
               </Popover>
