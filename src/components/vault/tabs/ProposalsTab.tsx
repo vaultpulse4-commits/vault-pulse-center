@@ -13,6 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import { DollarSign, TrendingUp, Clock, CheckCircle, FileText, Edit3, Trash2, Loader2, Plus, AlertTriangle, ThumbsUp, ShoppingCart, Rocket, Upload, Eye, Calendar as CalendarIcon, XCircle, Download, X } from "lucide-react";
 import { useState, useEffect } from "react";
 import { api } from "@/lib/api";
+import { compressImage } from "@/lib/imageCompression";
 import { usePermission } from "@/lib/permissions";
 import { format } from "date-fns";
 
@@ -212,7 +213,7 @@ export function ProposalsTab() {
     }
   };
 
-  const handlePdfUpload = (e: React.ChangeEvent<HTMLInputElement>, isEditing = false) => {
+  const handlePdfUpload = async (e: React.ChangeEvent<HTMLInputElement>, isEditing = false) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
     
@@ -232,7 +233,7 @@ export function ProposalsTab() {
     const newPdfs: string[] = [];
     let processed = 0;
     
-    Array.from(files).forEach((file, index) => {
+    for (const file of Array.from(files)) {
       const validTypes = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
       if (!validTypes.includes(file.type)) {
         toast({
@@ -240,43 +241,94 @@ export function ProposalsTab() {
           description: `File ${file.name} must be PDF or image (JPG, PNG, WEBP)`,
           variant: "destructive"
         });
-        return;
-      }
-      
-      // Max 5MB per file
-      if (file.size > 5 * 1024 * 1024) {
-        toast({
-          title: "Error",
-          description: `File ${file.name} size must be less than 5MB`,
-          variant: "destructive"
-        });
-        return;
-      }
-      
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        newPdfs.push(reader.result as string);
         processed++;
+        continue;
+      }
+      
+      const isImage = file.type.startsWith('image/');
+      
+      // For images, compress if larger than 1MB
+      if (isImage && file.size > 1 * 1024 * 1024) {
+        const originalSizeMB = (file.size / (1024 * 1024)).toFixed(2);
+        toast({
+          title: "Compressing image...",
+          description: `${file.name} (${originalSizeMB}MB) - Please wait`,
+        });
         
-        if (processed === files.length) {
-          const updatedPdfs = [...currentPdfs, ...newPdfs];
-          if (isEditing && editingProposal) {
-            setEditingProposal({ ...editingProposal, quotesPdfs: updatedPdfs });
-          } else {
-            setNewProposal({ ...newProposal, quotesPdfs: updatedPdfs });
-          }
+        try {
+          const compressedBase64 = await compressImage(file, { maxSizeMB: 1 });
+          newPdfs.push(compressedBase64);
+          processed++;
           
+          // Estimate compressed size from Base64 length
+          const compressedSizeMB = ((compressedBase64.length * 3) / 4 / (1024 * 1024)).toFixed(2);
+          toast({
+            title: "Image compressed",
+            description: `Reduced from ${originalSizeMB}MB to ${compressedSizeMB}MB`,
+          });
+        } catch (error) {
+          toast({
+            title: "Error",
+            description: `Failed to compress ${file.name}`,
+            variant: "destructive"
+          });
+          processed++;
+          continue;
+        }
+      } else {
+        // PDF files or small images: max 5MB for PDF, no limit for small images
+        if (!isImage && file.size > 5 * 1024 * 1024) {
+          toast({
+            title: "Error",
+            description: `PDF ${file.name} size must be less than 5MB`,
+            variant: "destructive"
+          });
+          processed++;
+          continue;
+        }
+        
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          newPdfs.push(reader.result as string);
+          processed++;
+          
+          if (processed === files.length) {
+            const updatedPdfs = [...currentPdfs, ...newPdfs];
+            if (isEditing && editingProposal) {
+              setEditingProposal({ ...editingProposal, quotesPdfs: updatedPdfs });
+            } else {
+              setNewProposal({ ...newProposal, quotesPdfs: updatedPdfs });
+            }
+            
+            toast({
+              title: "Success",
+              description: `${newPdfs.length} file(s) uploaded successfully`,
+            });
+          }
+        };
+        reader.readAsDataURL(file);
+      }
+      
+      // Check if all files processed (for compressed images)
+      if (processed === files.length) {
+        const updatedPdfs = [...currentPdfs, ...newPdfs];
+        if (isEditing && editingProposal) {
+          setEditingProposal({ ...editingProposal, quotesPdfs: updatedPdfs });
+        } else {
+          setNewProposal({ ...newProposal, quotesPdfs: updatedPdfs });
+        }
+        
+        if (newPdfs.length > 0) {
           toast({
             title: "Success",
             description: `${newPdfs.length} file(s) uploaded successfully`,
           });
         }
-      };
-      reader.readAsDataURL(file);
-    });
+      }
+    }
   };
 
-  const handleProposalPlanUpload = (e: React.ChangeEvent<HTMLInputElement>, isEditing = false) => {
+  const handleProposalPlanUpload = async (e: React.ChangeEvent<HTMLInputElement>, isEditing = false) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
     
@@ -296,7 +348,7 @@ export function ProposalsTab() {
     const newFiles: string[] = [];
     let processed = 0;
     
-    Array.from(files).forEach((file, index) => {
+    for (const file of Array.from(files)) {
       const validTypes = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
       if (!validTypes.includes(file.type)) {
         toast({
@@ -304,40 +356,91 @@ export function ProposalsTab() {
           description: `File ${file.name} must be PDF or image (JPG, PNG, WEBP)`,
           variant: "destructive"
         });
-        return;
-      }
-      
-      // Max 5MB per file
-      if (file.size > 5 * 1024 * 1024) {
-        toast({
-          title: "Error",
-          description: `File ${file.name} size must be less than 5MB`,
-          variant: "destructive"
-        });
-        return;
-      }
-      
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        newFiles.push(reader.result as string);
         processed++;
+        continue;
+      }
+      
+      const isImage = file.type.startsWith('image/');
+      
+      // For images, compress if larger than 1MB
+      if (isImage && file.size > 1 * 1024 * 1024) {
+        const originalSizeMB = (file.size / (1024 * 1024)).toFixed(2);
+        toast({
+          title: "Compressing image...",
+          description: `${file.name} (${originalSizeMB}MB) - Please wait`,
+        });
         
-        if (processed === files.length) {
-          const updatedFiles = [...currentFiles, ...newFiles];
-          if (isEditing && editingProposal) {
-            setEditingProposal({ ...editingProposal, proposalPlanFiles: updatedFiles });
-          } else {
-            setNewProposal({ ...newProposal, proposalPlanFiles: updatedFiles });
-          }
+        try {
+          const compressedBase64 = await compressImage(file, { maxSizeMB: 1 });
+          newFiles.push(compressedBase64);
+          processed++;
           
+          // Estimate compressed size from Base64 length
+          const compressedSizeMB = ((compressedBase64.length * 3) / 4 / (1024 * 1024)).toFixed(2);
+          toast({
+            title: "Image compressed",
+            description: `Reduced from ${originalSizeMB}MB to ${compressedSizeMB}MB`,
+          });
+        } catch (error) {
+          toast({
+            title: "Error",
+            description: `Failed to compress ${file.name}`,
+            variant: "destructive"
+          });
+          processed++;
+          continue;
+        }
+      } else {
+        // PDF files or small images: max 5MB for PDF, no limit for small images
+        if (!isImage && file.size > 5 * 1024 * 1024) {
+          toast({
+            title: "Error",
+            description: `PDF ${file.name} size must be less than 5MB`,
+            variant: "destructive"
+          });
+          processed++;
+          continue;
+        }
+        
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          newFiles.push(reader.result as string);
+          processed++;
+          
+          if (processed === files.length) {
+            const updatedFiles = [...currentFiles, ...newFiles];
+            if (isEditing && editingProposal) {
+              setEditingProposal({ ...editingProposal, proposalPlanFiles: updatedFiles });
+            } else {
+              setNewProposal({ ...newProposal, proposalPlanFiles: updatedFiles });
+            }
+            
+            toast({
+              title: "Success",
+              description: `${newFiles.length} proposal plan file(s) uploaded successfully`,
+            });
+          }
+        };
+        reader.readAsDataURL(file);
+      }
+      
+      // Check if all files processed (for compressed images)
+      if (processed === files.length) {
+        const updatedFiles = [...currentFiles, ...newFiles];
+        if (isEditing && editingProposal) {
+          setEditingProposal({ ...editingProposal, proposalPlanFiles: updatedFiles });
+        } else {
+          setNewProposal({ ...newProposal, proposalPlanFiles: updatedFiles });
+        }
+        
+        if (newFiles.length > 0) {
           toast({
             title: "Success",
             description: `${newFiles.length} proposal plan file(s) uploaded successfully`,
           });
         }
-      };
-      reader.readAsDataURL(file);
-    });
+      }
+    }
   };
 
   const handleUpdateProposal = async (id: string, updates: any) => {
