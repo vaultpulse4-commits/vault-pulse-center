@@ -1,6 +1,5 @@
 import { WeekPicker } from "@/components/vault/WeekPicker";
 import { CityToggle } from "@/components/vault/CityToggle";
-import { KPICards } from "@/components/vault/KPICards";
 import { VaultTabs } from "@/components/vault/VaultTabs";
 import { NotificationCenter } from "@/components/NotificationCenter";
 import { MobileNavigation } from "@/components/MobileNavigation";
@@ -155,9 +154,6 @@ const Index = () => {
           <WeekPicker />
           <CityToggle />
         </div>
-
-        {/* KPI Cards */}
-        <KPICards />
 
         {/* Quick Analytics Access */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3 md:gap-4">
