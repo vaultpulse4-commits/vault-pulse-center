@@ -60,7 +60,8 @@ export function MaintenanceLogsTab() {
     technicianId: '',
     supplierId: '',
     notes: '',
-    photo: ''
+    photo: '',
+    quotesFiles: [] as string[]
   });
   
   const [newIncident, setNewIncident] = useState({
@@ -322,7 +323,8 @@ export function MaintenanceLogsTab() {
       technicianId: log.technicianId || '',
       supplierId: log.supplierId || '',
       notes: log.notes || '',
-      photo: log.photo || ''
+      photo: log.photo || '',
+      quotesFiles: log.quotesFiles || []
     });
     setIsNewLogOpen(true);
   };
@@ -488,11 +490,144 @@ export function MaintenanceLogsTab() {
     setNewLog({ ...newLog, parts: newLog.parts.filter((_, i) => i !== index) });
   };
 
+  const handleQuotesUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    const processedFiles: string[] = [];
+    let processedCount = 0;
+
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      const isImage = file.type.startsWith('image/');
+      const isPDF = file.type === 'application/pdf';
+
+      if (!isImage && !isPDF) {
+        toast({
+          title: "Error",
+          description: `${file.name}: File must be PDF or image`,
+          variant: "destructive"
+        });
+        continue;
+      }
+
+      // PDF: max 5MB, no compression
+      if (isPDF) {
+        if (file.size > 5 * 1024 * 1024) {
+          toast({
+            title: "Error",
+            description: `${file.name}: PDF size must be less than 5MB`,
+            variant: "destructive"
+          });
+          continue;
+        }
+
+        const reader = new FileReader();
+        await new Promise<void>((resolve) => {
+          reader.onloadend = () => {
+            processedFiles.push(reader.result as string);
+            processedCount++;
+            resolve();
+          };
+          reader.readAsDataURL(file);
+        });
+      } else {
+        // Images: auto-compress if > 1MB
+        try {
+          const result = await validateAndCompressImage(file, 2);
+          
+          if (!result.success) {
+            toast({
+              title: "Error",
+              description: `${file.name}: ${result.error}`,
+              variant: "destructive"
+            });
+            continue;
+          }
+
+          processedFiles.push(result.data as string);
+          processedCount++;
+
+          if (result.wasCompressed) {
+            const originalSizeMB = (file.size / (1024 * 1024)).toFixed(2);
+            const compressedSize = result.data ? Math.round((result.data.length * 3) / 4) : 0;
+            const compressedSizeMB = (compressedSize / (1024 * 1024)).toFixed(2);
+            
+            toast({
+              title: "Image compressed",
+              description: `${file.name}: ${originalSizeMB}MB → ${compressedSizeMB}MB`,
+            });
+          }
+        } catch (error) {
+          toast({
+            title: "Error",
+            description: `${file.name}: Failed to process image`,
+            variant: "destructive"
+          });
+        }
+      }
+    }
+
+    if (processedCount > 0) {
+      setNewLog(prev => ({
+        ...prev,
+        quotesFiles: [...prev.quotesFiles, ...processedFiles]
+      }));
+      
+      toast({
+        title: "Success",
+        description: `${processedCount} file(s) uploaded successfully`,
+      });
+    }
+  };
+
+  const removeQuoteFile = (index: number) => {
+    setNewLog(prev => ({
+      ...prev,
+      quotesFiles: prev.quotesFiles.filter((_, i) => i !== index)
+    }));
+  };
+
   const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     
-    // Show loading toast for large images
+    const isImage = file.type.startsWith('image/');
+    const isPDF = file.type === 'application/pdf';
+    
+    if (!isImage && !isPDF) {
+      toast({
+        title: "Error",
+        description: "File must be PDF or image (JPG, PNG, WEBP)",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    // PDF: max 5MB, no compression
+    if (isPDF) {
+      if (file.size > 5 * 1024 * 1024) {
+        toast({
+          title: "Error",
+          description: "PDF size must be less than 5MB",
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setNewLog({ ...newLog, photo: reader.result as string });
+        toast({
+          title: "Success",
+          description: "PDF uploaded successfully",
+        });
+      };
+      reader.readAsDataURL(file);
+      return;
+    }
+    
+    // Images: auto-compress if > 1MB
     const loadingToast = file.size > 1024 * 1024 ? toast({
       title: "Processing image...",
       description: "Compressing image, please wait",
@@ -721,15 +856,15 @@ export function MaintenanceLogsTab() {
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <Label>Upload Photo</Label>
+                  <Label>Upload Photo/Document</Label>
                   <div className="space-y-2">
                     <Input
                       type="file"
-                      accept="image/*"
+                      accept="application/pdf,image/jpeg,image/jpg,image/png,image/webp"
                       onChange={handlePhotoUpload}
                       className="cursor-pointer"
                     />
-                    <p className="text-xs text-muted-foreground">JPG/PNG/WEBP - Large images will be auto-compressed</p>
+                    <p className="text-xs text-muted-foreground">PDF or Image (JPG/PNG/WEBP) - Images will be auto-compressed if &gt;1MB</p>
                     {newLog.photo && (
                       <div className="relative">
                         <img src={newLog.photo} alt="Preview" className="w-full h-48 object-cover rounded border" />
@@ -745,6 +880,63 @@ export function MaintenanceLogsTab() {
                     )}
                   </div>
                 </div>
+                <div className="space-y-2">
+                  <Label>Upload Quotes (PDF/Images)</Label>
+                  <div className="space-y-2">
+                    <Input
+                      type="file"
+                      accept="application/pdf,image/jpeg,image/jpg,image/png,image/webp"
+                      onChange={handleQuotesUpload}
+                      className="cursor-pointer"
+                      multiple
+                    />
+                    <p className="text-xs text-muted-foreground">Multiple files supported - PDF (max 5MB) or Images (auto-compressed if &gt;1MB)</p>
+                    {newLog.quotesFiles && newLog.quotesFiles.length > 0 && (
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <p className="text-sm font-medium">{newLog.quotesFiles.length} file(s) uploaded</p>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setNewLog({...newLog, quotesFiles: []})}
+                          >
+                            Clear All
+                          </Button>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2">
+                          {newLog.quotesFiles.map((file, index) => (
+                            <div key={index} className="relative border rounded p-2">
+                              {file.startsWith('data:application/pdf') ? (
+                                <div className="flex items-center justify-between">
+                                  <span className="text-xs truncate">PDF Document {index + 1}</span>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => removeQuoteFile(index)}
+                                  >
+                                    <Trash2 className="h-3 w-3" />
+                                  </Button>
+                                </div>
+                              ) : (
+                                <div className="relative">
+                                  <img src={file} alt={`Quote ${index + 1}`} className="w-full h-24 object-cover rounded" />
+                                  <Button
+                                    variant="destructive"
+                                    size="sm"
+                                    className="absolute top-1 right-1"
+                                    onClick={() => removeQuoteFile(index)}
+                                  >
+                                    <Trash2 className="h-3 w-3" />
+                                  </Button>
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
               <div className="flex gap-2 justify-end">
                 <Button variant="outline" onClick={() => {
@@ -752,7 +944,7 @@ export function MaintenanceLogsTab() {
                   setEditingLog(null);
                   setNewLog({
                     equipmentId: '', type: 'Preventive', issue: '', status: 'Scheduled',
-                    mttr: null, cost: 0, parts: [], date: new Date(), technicianId: '', notes: '', photo: ''
+                    mttr: null, cost: 0, parts: [], date: new Date(), technicianId: '', notes: '', photo: '', quotesFiles: []
                   });
                 }}>Cancel</Button>
                 <Button onClick={handleSaveLog}>{editingLog ? 'Update' : 'Create'} Work Order</Button>
@@ -1005,6 +1197,34 @@ export function MaintenanceLogsTab() {
                   {order.photo && (
                     <div>
                       <img src={order.photo} alt="Maintenance" className="w-full max-w-md h-48 object-cover rounded border" />
+                    </div>
+                  )}
+                  
+                  {order.quotesFiles && order.quotesFiles.length > 0 && (
+                    <div className="space-y-2">
+                      <div className="text-sm font-medium">Quotes/Documents ({order.quotesFiles.length})</div>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                        {order.quotesFiles.map((file: string, index: number) => (
+                          <div key={index} className="border rounded overflow-hidden">
+                            {file.startsWith('data:application/pdf') ? (
+                              <a
+                                href={file}
+                                download={`quote-${index + 1}.pdf`}
+                                className="flex items-center justify-center h-32 bg-muted hover:bg-muted/80 transition-colors"
+                              >
+                                <div className="text-center">
+                                  <FileText className="h-8 w-8 mx-auto mb-1 text-muted-foreground" />
+                                  <span className="text-xs">PDF {index + 1}</span>
+                                </div>
+                              </a>
+                            ) : (
+                              <a href={file} target="_blank" rel="noopener noreferrer">
+                                <img src={file} alt={`Quote ${index + 1}`} className="w-full h-32 object-cover hover:opacity-80 transition-opacity" />
+                              </a>
+                            )}
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   )}
                   
