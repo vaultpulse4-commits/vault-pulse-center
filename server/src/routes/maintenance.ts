@@ -78,10 +78,10 @@ maintenanceRouter.get('/:id', async (req, res) => {
 
 maintenanceRouter.post('/', async (req, res) => {
   try {
-    console.log('Creating maintenance log with data:', req.body);
+    console.log('Creating maintenance log');
     
     // Validate required fields
-    const { equipmentId, type, issue, cost, date, technicianId, city, notes, photo, status, parts, supplierId } = req.body;
+    const { equipmentId, type, issue, cost, date, technicianId, city, notes, photo, status, parts, supplierId, quotesFiles } = req.body;
     if (!type || !issue || cost === undefined || !date || !city) {
       return res.status(400).json({ 
         error: 'Missing required fields',
@@ -103,7 +103,8 @@ maintenanceRouter.post('/', async (req, res) => {
         notes: notes || '',
         photo: photo || '',
         city,
-        supplierId: supplierId || null
+        supplierId: supplierId || null,
+        quotesFiles: quotesFiles || []
       },
       include: {
         equipment: true,
@@ -134,9 +135,41 @@ maintenanceRouter.post('/', async (req, res) => {
 
 maintenanceRouter.patch('/:id', async (req, res) => {
   try {
+    console.log('Updating maintenance log:', req.params.id);
+    
+    // Sanitize update data - remove fields that shouldn't be updated directly
+    const updateData = { ...req.body };
+    delete updateData.id;
+    delete updateData.createdAt;
+    delete updateData.updatedAt;
+    delete updateData.equipment;
+    delete updateData.technician;
+    delete updateData.supplier;
+    
+    // Convert date string to Date object if present
+    if (updateData.date) {
+      updateData.date = new Date(updateData.date);
+    }
+    
+    // Convert numeric fields
+    if (updateData.cost !== undefined) {
+      updateData.cost = parseFloat(updateData.cost);
+    }
+    if (updateData.mttr !== undefined && updateData.mttr !== null) {
+      updateData.mttr = parseFloat(updateData.mttr);
+    }
+    
+    // Log file counts instead of full data
+    if (updateData.quotesFiles) {
+      console.log('Quotes files count:', updateData.quotesFiles.length);
+    }
+    if (updateData.photo) {
+      console.log('Photo present:', updateData.photo.length > 0);
+    }
+    
     const log = await prisma.maintenanceLog.update({
       where: { id: req.params.id },
-      data: req.body,
+      data: updateData,
       include: {
         equipment: true,
         technician: true,
@@ -152,9 +185,15 @@ maintenanceRouter.patch('/:id', async (req, res) => {
         }
       }
     });
+    
+    console.log('Maintenance log updated successfully');
     res.json(log);
-  } catch (error) {
-    res.status(500).json({ error: 'Failed to update maintenance log' });
+  } catch (error: any) {
+    console.error('Error updating maintenance log:', error);
+    res.status(500).json({ 
+      error: 'Failed to update maintenance log',
+      details: error.message 
+    });
   }
 });
 
