@@ -164,6 +164,7 @@ model Proposal {
   estimateApproved   Boolean         @default(false)
   estimateApprovedBy String?
   quotesPdfs         String[]        @default([])
+  proposalPlanFiles  String[]        @default([])
   supplierId         String?
   supplier           Supplier?       @relation(fields: [supplierId], references: [id])
 

@@ -123,9 +123,36 @@ proposalRouter.post('/', async (req, res) => {
 
 proposalRouter.patch('/:id', async (req, res) => {
   try {
+    const { id } = req.params;
+    const updateData: any = { ...req.body };
+    
+    // Handle date conversion if targetDate exists
+    if (updateData.targetDate) {
+      updateData.targetDate = new Date(updateData.targetDate);
+    }
+    
+    // Handle numeric conversions
+    if (updateData.estimate !== undefined) {
+      updateData.estimate = parseFloat(updateData.estimate);
+    }
+    if (updateData.quotesCount !== undefined) {
+      updateData.quotesCount = parseInt(updateData.quotesCount);
+    }
+    
+    // Remove fields that shouldn't be updated directly
+    delete updateData.id;
+    delete updateData.createdAt;
+    delete updateData.supplier; // This is a relation, not a field
+    
+    console.log(`Updating proposal ${id} with data:`, {
+      ...updateData,
+      quotesPdfs: updateData.quotesPdfs ? `${updateData.quotesPdfs.length} files` : 'unchanged',
+      proposalPlanFiles: updateData.proposalPlanFiles ? `${updateData.proposalPlanFiles.length} files` : 'unchanged'
+    });
+    
     const proposal = await prisma.proposal.update({
-      where: { id: req.params.id },
-      data: req.body,
+      where: { id },
+      data: updateData,
       include: {
         supplier: {
           select: {
@@ -139,6 +166,8 @@ proposalRouter.patch('/:id', async (req, res) => {
         }
       }
     });
+    
+    console.log(`Proposal ${id} updated successfully`);
     res.json(proposal);
   } catch (error: any) {
     console.error('Error updating proposal:', error);
