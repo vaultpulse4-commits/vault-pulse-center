@@ -856,32 +856,7 @@ export function MaintenanceLogsTab() {
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <Label>Upload Photo/Document</Label>
-                  <div className="space-y-2">
-                    <Input
-                      type="file"
-                      accept="application/pdf,image/jpeg,image/jpg,image/png,image/webp"
-                      onChange={handlePhotoUpload}
-                      className="cursor-pointer"
-                    />
-                    <p className="text-xs text-muted-foreground">PDF or Image (JPG/PNG/WEBP) - Images will be auto-compressed if &gt;1MB</p>
-                    {newLog.photo && (
-                      <div className="relative">
-                        <img src={newLog.photo} alt="Preview" className="w-full h-48 object-cover rounded border" />
-                        <Button
-                          variant="destructive"
-                          size="sm"
-                          className="absolute top-2 right-2"
-                          onClick={() => setNewLog({...newLog, photo: ''})}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    )}
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label>Upload Quotes (PDF/Images)</Label>
+                  <Label>Upload Documents (PDF/Images)</Label>
                   <div className="space-y-2">
                     <Input
                       type="file"
