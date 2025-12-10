@@ -159,6 +159,17 @@ maintenanceRouter.patch('/:id', async (req, res) => {
       updateData.mttr = parseFloat(updateData.mttr);
     }
     
+    // Handle empty string IDs - convert to null for optional foreign keys
+    if (updateData.equipmentId === '') {
+      updateData.equipmentId = null;
+    }
+    if (updateData.technicianId === '') {
+      updateData.technicianId = null;
+    }
+    if (updateData.supplierId === '') {
+      updateData.supplierId = null;
+    }
+    
     // Log file counts instead of full data
     if (updateData.quotesFiles) {
       console.log('Quotes files count:', updateData.quotesFiles.length);
