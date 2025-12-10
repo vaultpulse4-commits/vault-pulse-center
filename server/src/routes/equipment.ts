@@ -7,7 +7,7 @@ export const equipmentRouter = Router();
 // Get all equipment (with optional city filter)
 equipmentRouter.get('/', async (req, res) => {
   try {
-    const { city, page = '1', limit = '50' } = req.query;
+    const { city, page = '1', limit = '100' } = req.query;
     const pageNum = parseInt(page as string);
     const limitNum = parseInt(limit as string);
     
