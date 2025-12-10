@@ -148,7 +148,7 @@ export function SuppliersTab() {
       setIsNewDialogOpen(false);
       setEditingSupplier(null);
       resetForm();
-      loadSuppliers();
+      await loadSuppliers();
     } catch (err: any) {
       toast({
         title: "Error",

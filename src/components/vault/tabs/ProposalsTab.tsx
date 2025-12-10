@@ -46,6 +46,7 @@ export function ProposalsTab() {
     nextAction: '',
     quotesCount: 0,
     quotesPdfs: [] as string[],
+    proposalPlanFiles: [] as string[],
     description: '',
     estimateApproved: false,
     estimateApprovedBy: null as string | null
@@ -196,7 +197,7 @@ export function ProposalsTab() {
       setNewProposal({
         title: '', type: 'CapEx', urgency: 'Medium', estimate: 0,
         vendor: '', supplierId: '', status: 'Pending', targetDate: null, owner: '', nextAction: '', 
-        quotesCount: 0, quotesPdfs: [], description: '', estimateApproved: false, estimateApprovedBy: null
+        quotesCount: 0, quotesPdfs: [], proposalPlanFiles: [], description: '', estimateApproved: false, estimateApprovedBy: null
       });
       setIsNewProposalOpen(false);
       
@@ -222,7 +223,7 @@ export function ProposalsTab() {
     if (currentPdfs.length + files.length > 5) {
       toast({
         title: "Error",
-        description: `Maximum 5 PDF files allowed. You can add ${5 - currentPdfs.length} more files.`,
+        description: `Maximum 5 files allowed. You can add ${5 - currentPdfs.length} more files.`,
         variant: "destructive"
       });
       return;
@@ -232,10 +233,11 @@ export function ProposalsTab() {
     let processed = 0;
     
     Array.from(files).forEach((file, index) => {
-      if (file.type !== 'application/pdf') {
+      const validTypes = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+      if (!validTypes.includes(file.type)) {
         toast({
           title: "Error",
-          description: `File ${file.name} is not a PDF`,
+          description: `File ${file.name} must be PDF or image (JPG, PNG, WEBP)`,
           variant: "destructive"
         });
         return;
@@ -266,7 +268,71 @@ export function ProposalsTab() {
           
           toast({
             title: "Success",
-            description: `${newPdfs.length} PDF file(s) uploaded successfully`,
+            description: `${newPdfs.length} file(s) uploaded successfully`,
+          });
+        }
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const handleProposalPlanUpload = (e: React.ChangeEvent<HTMLInputElement>, isEditing = false) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    
+    const currentProposal = isEditing ? editingProposal : newProposal;
+    const currentFiles = currentProposal.proposalPlanFiles || [];
+    
+    // Check if adding these files would exceed limit
+    if (currentFiles.length + files.length > 5) {
+      toast({
+        title: "Error",
+        description: `Maximum 5 files allowed. You can add ${5 - currentFiles.length} more files.`,
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    const newFiles: string[] = [];
+    let processed = 0;
+    
+    Array.from(files).forEach((file, index) => {
+      const validTypes = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+      if (!validTypes.includes(file.type)) {
+        toast({
+          title: "Error",
+          description: `File ${file.name} must be PDF or image (JPG, PNG, WEBP)`,
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      // Max 5MB per file
+      if (file.size > 5 * 1024 * 1024) {
+        toast({
+          title: "Error",
+          description: `File ${file.name} size must be less than 5MB`,
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        newFiles.push(reader.result as string);
+        processed++;
+        
+        if (processed === files.length) {
+          const updatedFiles = [...currentFiles, ...newFiles];
+          if (isEditing && editingProposal) {
+            setEditingProposal({ ...editingProposal, proposalPlanFiles: updatedFiles });
+          } else {
+            setNewProposal({ ...newProposal, proposalPlanFiles: updatedFiles });
+          }
+          
+          toast({
+            title: "Success",
+            description: `${newFiles.length} proposal plan file(s) uploaded successfully`,
           });
         }
       };
@@ -566,18 +632,18 @@ export function ProposalsTab() {
                 />
               </div>
               <div className="col-span-2 space-y-2">
-                <Label>Upload Quotes PDF (Max 5 files)</Label>
+                <Label>Upload Quotes (PDF or Image, Max 5 files)</Label>
                 <div className="flex flex-wrap gap-2 items-center">
                   <Input
                     type="file"
-                    accept="application/pdf"
+                    accept="application/pdf,image/jpeg,image/jpg,image/png,image/webp"
                     multiple
                     onChange={(e) => handlePdfUpload(e, false)}
                     className="cursor-pointer"
                   />
                   {newProposal.quotesPdfs && newProposal.quotesPdfs.length > 0 && (
                     <Badge variant="outline" className="text-xs">
-                      {newProposal.quotesPdfs.length}/5 PDFs uploaded
+                      {newProposal.quotesPdfs.length}/5 files uploaded
                     </Badge>
                   )}
                 </div>
@@ -608,7 +674,56 @@ export function ProposalsTab() {
                       onClick={() => setNewProposal({...newProposal, quotesPdfs: []})}
                     >
                       <Trash2 className="h-3 w-3 mr-1" />
-                      Clear All PDFs
+                      Clear All
+                    </Button>
+                  </div>
+                )}
+              </div>
+
+              <div className="col-span-2 space-y-2">
+                <Label>Upload Proposal Plan (PDF or Image, Max 5 files)</Label>
+                <div className="flex flex-wrap gap-2 items-center">
+                  <Input
+                    type="file"
+                    accept="application/pdf,image/jpeg,image/jpg,image/png,image/webp"
+                    multiple
+                    onChange={(e) => handleProposalPlanUpload(e, false)}
+                    className="cursor-pointer"
+                  />
+                  {newProposal.proposalPlanFiles && newProposal.proposalPlanFiles.length > 0 && (
+                    <Badge variant="outline" className="text-xs">
+                      {newProposal.proposalPlanFiles.length}/5 files uploaded
+                    </Badge>
+                  )}
+                </div>
+                {newProposal.proposalPlanFiles && newProposal.proposalPlanFiles.length > 0 && (
+                  <div className="space-y-2">
+                    <div className="flex flex-wrap gap-2">
+                      {newProposal.proposalPlanFiles.map((file, index) => (
+                        <div key={index} className="flex items-center gap-1 bg-muted/50 rounded px-2 py-1">
+                          <FileText className="h-3 w-3" />
+                          <span className="text-xs">Plan {index + 1}</span>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-4 w-4 p-0"
+                            onClick={() => {
+                              const updated = newProposal.proposalPlanFiles.filter((_, i) => i !== index);
+                              setNewProposal({...newProposal, proposalPlanFiles: updated});
+                            }}
+                          >
+                            <X className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setNewProposal({...newProposal, proposalPlanFiles: []})}
+                    >
+                      <Trash2 className="h-3 w-3 mr-1" />
+                      Clear All
                     </Button>
                   </div>
                 )}
@@ -939,18 +1054,18 @@ export function ProposalsTab() {
                 />
               </div>
               <div className="col-span-2 space-y-2">
-                <Label>Upload Quotes PDF (Max 5 files)</Label>
+                <Label>Upload Quotes (PDF or Image, Max 5 files)</Label>
                 <div className="flex flex-wrap gap-2 items-center">
                   <Input
                     type="file"
-                    accept="application/pdf"
+                    accept="application/pdf,image/jpeg,image/jpg,image/png,image/webp"
                     multiple
                     onChange={(e) => handlePdfUpload(e, true)}
                     className="cursor-pointer"
                   />
                   {editingProposal.quotesPdfs && editingProposal.quotesPdfs.length > 0 && (
                     <Badge variant="outline" className="text-xs">
-                      {editingProposal.quotesPdfs.length}/5 PDFs uploaded
+                      {editingProposal.quotesPdfs.length}/5 files uploaded
                     </Badge>
                   )}
                 </div>
@@ -981,7 +1096,56 @@ export function ProposalsTab() {
                       onClick={() => setEditingProposal({...editingProposal, quotesPdfs: []})}
                     >
                       <Trash2 className="h-3 w-3 mr-1" />
-                      Clear All PDFs
+                      Clear All
+                    </Button>
+                  </div>
+                )}
+              </div>
+
+              <div className="col-span-2 space-y-2">
+                <Label>Upload Proposal Plan (PDF or Image, Max 5 files)</Label>
+                <div className="flex flex-wrap gap-2 items-center">
+                  <Input
+                    type="file"
+                    accept="application/pdf,image/jpeg,image/jpg,image/png,image/webp"
+                    multiple
+                    onChange={(e) => handleProposalPlanUpload(e, true)}
+                    className="cursor-pointer"
+                  />
+                  {editingProposal.proposalPlanFiles && editingProposal.proposalPlanFiles.length > 0 && (
+                    <Badge variant="outline" className="text-xs">
+                      {editingProposal.proposalPlanFiles.length}/5 files uploaded
+                    </Badge>
+                  )}
+                </div>
+                {editingProposal.proposalPlanFiles && editingProposal.proposalPlanFiles.length > 0 && (
+                  <div className="space-y-2">
+                    <div className="flex flex-wrap gap-2">
+                      {editingProposal.proposalPlanFiles.map((file: string, index: number) => (
+                        <div key={index} className="flex items-center gap-1 bg-muted/50 rounded px-2 py-1">
+                          <FileText className="h-3 w-3" />
+                          <span className="text-xs">Plan {index + 1}</span>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-4 w-4 p-0"
+                            onClick={() => {
+                              const updated = editingProposal.proposalPlanFiles.filter((_: string, i: number) => i !== index);
+                              setEditingProposal({...editingProposal, proposalPlanFiles: updated});
+                            }}
+                          >
+                            <X className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setEditingProposal({...editingProposal, proposalPlanFiles: []})}
+                    >
+                      <Trash2 className="h-3 w-3 mr-1" />
+                      Clear All
                     </Button>
                   </div>
                 )}
