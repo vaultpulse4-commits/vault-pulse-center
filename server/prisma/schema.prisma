@@ -118,6 +118,7 @@ model MaintenanceLog {
   technicianId String?
   photo        String            @default("")
   supplierId   String?
+  quotesFiles  String[]          @default([])
   equipment    Equipment?        @relation(fields: [equipmentId], references: [id])
   supplier     Supplier?         @relation(fields: [supplierId], references: [id])
   technician   CrewMember?       @relation(fields: [technicianId], references: [id])
